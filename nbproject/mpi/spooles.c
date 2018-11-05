@@ -76,7 +76,7 @@ static void ssolve_creategraph(Graph ** graph, ETree ** frontETree,
     nedges = IVL_tsize(adjIVL);
     Graph_init2(*graph, 0, size, 0, nedges, size, nedges, adjIVL,
             NULL, NULL);
-    if (DEBUG_LVL > 1) _{
+    if (DEBUG_LVL > 1) {
         fprintf(msgFile, "\n\n graph of the input matrix");
         Graph_writeForHumanEye(*graph, msgFile);
         fflush(msgFile);
@@ -472,7 +472,7 @@ void mtxA_propagate(InpMtx *mtxA, ITG *inputformat, double *sigma, int size, dou
 
         if (DEBUG_LVL > 100) printf("\tedong: *inputformat = %d, *sigma = %lf\n", *inputformat, *sigma);
 
-        int col, ipoint, ipo;
+        int col, ipoint, ipo, i,j;
         if (*inputformat == 0) {
             ipoint = 0;
 
@@ -666,10 +666,12 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
 
 #ifdef PMI_READY
      
+        if (DEBUG_LVL > 100) printf("\nedong: PMI_READY\n");
         mtxA_propagate(mtxA, inputformat, sigma, size, ad, au, adb, aub,
                         icol, irow, neq, nzs3, nzs);
 
 #else
+        if (DEBUG_LVL > 100) printf("\nedong: PMI_NOT_READY\n");
         
         {
         if (*inputformat == 0) {
