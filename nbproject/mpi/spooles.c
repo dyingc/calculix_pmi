@@ -52,6 +52,12 @@ int num_cpus = -1;
 
 #ifdef MPI_READY
 int root = 0;
+int myid;
+int myid, nproc;
+int namelen;
+char processor_name[MPI_MAX_PROCESSOR_NAME];
+double starttime = 0.0, endtime;
+int maxdomainsize, maxsize, maxzeros;
 #endif
 
 #define TUNE_MAXZEROS  1000
@@ -62,6 +68,8 @@ int root = 0;
 #define MAGIC_DTOL  0.0
 #define MAGIC_TAU  100.0
 
+
+void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, int *symmetryflagi4);
 
 static void ssolve_creategraph_MPI(Graph ** graph, ETree ** frontETree,
         InpMtx * mtxA, int size, FILE * msgFile) {
@@ -867,19 +875,7 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
     {
         int col, ipoint, ipo;
         int nent, i, j;
-        
-#ifdef PMI_READY
-        int myid, nproc;
-        int namelen;
-        char processor_name[MPI_MAX_PROCESSOR_NAME];
-        double starttime = 0.0, endtime;
-        int maxdomainsize, maxsize, maxzeros;
-        MPI_Init(NULL, NULL);
-        MPI_Comm_rank(MPI_COMM_WORLD, &myid);
-        MPI_Comm_size(MPI_COMM_WORLD, &nproc);
-        MPI_Get_processor_name(processor_name, &namelen);
-#endif
-      
+              
         mtxA = InpMtx_new();
 
         if ((*inputformat == 0) || (*inputformat == 3)) {
@@ -1575,6 +1571,12 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
         double *b, ITG *icol, ITG *irow, ITG *neq, ITG *nzs,
         ITG *symmetryflag, ITG *inputformat, ITG *nzs3) {
 
+#ifdef MPI_READY
+    MPI_Init(NULL, NULL);
+    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+    MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+    MPI_Get_processor_name(processor_name, &namelen);
+#endif
 
     if (DEBUG_LVL > 100) printf("edong enters spooles\n");
 
