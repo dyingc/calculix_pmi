@@ -50,6 +50,10 @@
 int num_cpus = -1;
 #endif
 
+#ifdef MPI_READY
+int root = 0;
+#endif
+
 #define TUNE_MAXZEROS  1000
 #define TUNE_MAXDOMAINSIZE 800
 #define TUNE_MAXSIZE  64
@@ -57,6 +61,61 @@ int num_cpus = -1;
 #define RNDSEED  7892713
 #define MAGIC_DTOL  0.0
 #define MAGIC_TAU  100.0
+
+
+static void ssolve_creategraph_MPI(Graph ** graph, ETree ** frontETree,
+        InpMtx * mtxA, int size, FILE * msgFile) {
+    /*----------------------------------------------------------------*/
+    /*
+       -------------------------------------------------------
+       STEP 3 : Find a low-fill ordering
+       (1) Processor 0 creates the Graph object
+       (2) Processor 0 orders the graph using the better of
+       Nested Dissection and Multisection
+       (3) Optimal front matrix paremeters are chosen depending
+       on the number of processors
+       (4) Broadcast ordering to the other processors
+       -------------------------------------------------------
+    // edong: It's completed in ssolve_creategraph function in spooles.c
+     */
+    if (myid == root) {
+        *graph = Graph_new();
+        adjIVL = InpMtx_fullAdjacency(mtxA);
+        nedges = IVL_tsize(adjIVL);
+        Graph_init2(*graph, 0, size, 0, nedges, size, nedges, adjIVL,
+            NULL, NULL);
+        if (DEBUG_LVL > 1) {
+            fprintf(msgFile, "\n\n graph of the input matrix");
+            Graph_writeForHumanEye(*graph, msgFile);
+            fflush(msgFile);
+        }
+        /* Below choose the optimized values for maxdomainsize, */
+        /* maxzeros, and maxsize depending on the number of     */
+
+        /* processors. */
+        if (nproc == 2) {
+            maxdomainsize = 700;
+            maxzeros = 1000;
+            maxsize = 96;
+        } else if (nproc == 3) {
+            maxdomainsize = 900;
+            maxzeros = 1000;
+            maxsize = 64;
+        } else {
+            maxdomainsize = 900;
+            maxzeros = 1000;
+            maxsize = 80;
+        }
+        /* Perform an ordering with the better of nested dissection and */
+        /* multi-section.  */
+        *frontETree = orderViaBestOfNDandMS(*graph, maxdomainsize, maxzeros,
+                maxsize, RNDSEED, DEBUG_LVL, msgFile);
+    } else {
+    }
+    /* The ordering is now sent to all processors with MPI_Bcast. */
+    *frontETree = ETree_MPI_Bcast(*frontETree, root,
+            DEBUG_LVL, msgFile, MPI_COMM_WORLD);    
+}
 
 /*
  * Substeps for solving A X = B:
@@ -77,6 +136,9 @@ static void ssolve_creategraph(Graph ** graph, ETree ** frontETree,
     IVL *adjIVL;
     int nedges;
 
+#ifdef MPI
+    ssolve_creategraph_MPI(graph, frontETree, mtxA, size, msgFile);
+#else
     *graph = Graph_new();
     adjIVL = InpMtx_fullAdjacency(mtxA);
     nedges = IVL_tsize(adjIVL);
@@ -104,6 +166,7 @@ static void ssolve_creategraph(Graph ** graph, ETree ** frontETree,
         ETree_writeForHumanEye(*frontETree, msgFile);
         fflush(msgFile);
     }
+#endif
 }
 
 static void ssolve_permuteA(IV ** oldToNewIV, IV ** newToOldIV,
