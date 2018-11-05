@@ -631,7 +631,19 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
     {
         int col, ipoint, ipo;
         int nent, i, j;
-
+        
+#ifdef PMI_READY
+        int myid, nproc;
+        int namelen;
+        char processor_name[MPI_MAX_PROCESSOR_NAME];
+        double starttime = 0.0, endtime;
+        int maxdomainsize, maxsize, maxzeros;
+        MPI_Init(&argc, &argv);
+        MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+        MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+        MPI_Get_processor_name(processor_name, &namelen);
+#endif
+      
         mtxA = InpMtx_new();
 
         if ((*inputformat == 0) || (*inputformat == 3)) {
@@ -666,7 +678,23 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
 
 #ifdef PMI_READY
      
+    /*----------------------------------------------------------------*/
+    /*
+       -----------------------------------------------------------------
+       Find out the identity of this process and the number of processes
+       -----------------------------------------------------------------
+     * edong: re-coded into spooles_factor, inside #ifdef PMI_READY
+     */
+        if (myid == 0) {
+            printf("Solving the system of equations using SpoolesMPI\n\n");
+        }
+        fprintf(stdout, "Process %d of %d on %s\n", myid + 1, nproc,
+                processor_name);
+        /* Start a timer to determine how long the solve process takes */
+        starttime = MPI_Wtime();
+
         if (DEBUG_LVL > 100) printf("\nedong: PMI_READY\n");
+        MPI_Barrier(MPI_COMM_WORLD);  
         mtxA_propagate(mtxA, inputformat, sigma, size, ad, au, adb, aub,
                         icol, irow, neq, nzs3, nzs);
 
