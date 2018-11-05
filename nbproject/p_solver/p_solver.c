@@ -362,8 +362,7 @@ int main(int argc, char *argv[]) {
     // edong: In STEP 7 of factor_MT in spooles.c
     // edong: Somehow I can't find related steps in the serial version factor
      */
-    solvemap = SolveMap_new();
-    SolveMap_ddMap(solvemap, frontmtx->symmetryflag,
+    solvemap = SolveMap_new(); SolveMap_ddMap(solvemap, frontmtx->symmetryflag,
             FrontMtx_upperBlockIVL(frontmtx),
             FrontMtx_lowerBlockIVL(frontmtx),
             nproc, ownersIV, FrontMtx_frontTree(frontmtx),
@@ -394,6 +393,7 @@ int main(int argc, char *argv[]) {
        STEP 13: Create a solution DenseMtx object
        ------------------------------------------
     // edong: This step and the next one: STEP 9 of fsolve_MT or STEP 7 of fsolve in spooles.c
+    // edong: Have defined fsolve_MPI to replace fsolve_MT or fsolve which is invoked from spooles_solve or spooles_solve_rad (both have been updated)Have defined fsolve_MPI to replace fsolve_MT or fsolve which is invoked from spooles_solve or spooles_solve_rad (both have been updated)
      */
     ownedColumnsIV = FrontMtx_ownedColumnsIV(frontmtx, myid, ownersIV,
             msglvl, msgFile);
@@ -411,6 +411,7 @@ int main(int argc, char *argv[]) {
        --------------------------------
     // edong: This step and the previous one: STEP 9 of fsolve_MT or STEP 7 of fsolve in spooles.c
     // edong: the solvemanager is got from STEP 3 of factor or STEP 4 of factor_MT
+    // edong: Have defined fsolve_MPI to replace fsolve_MT or fsolve which is invoked from spooles_solve or spooles_solve_rad (both have been updated)Have defined fsolve_MPI to replace fsolve_MT or fsolve which is invoked from spooles_solve or spooles_solve_rad (both have been updated)
      */
     /* Very similar to the serial code */
     solvemanager = SubMtxManager_new();
@@ -430,6 +431,7 @@ int main(int argc, char *argv[]) {
        --------------------------------------------------------
     // edong: STEP 8 in fsolve or STEP 10 in fsolve_MT in spooles.c
     // edong: STEP 6 of fsolve (or STEP 8 of fsolve_MT) can be found in MPI version STEP 4 (the last statement about mtxB)
+    // edong: Have defined fsolve_MPI to replace fsolve_MT or fsolve which is invoked from spooles_solve or spooles_solve_rad (both have been updated)Have defined fsolve_MPI to replace fsolve_MT or fsolve which is invoked from spooles_solve or spooles_solve_rad (both have been updated)
      */
     DenseMtx_permuteRows(mtxX, newToOldIV);
     if (msglvl > 1) {

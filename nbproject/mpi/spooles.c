@@ -39,6 +39,12 @@
 #include <unistd.h>
 #include "CalculiX.h"
 #include "spooles.h"
+#include "/usr/local/SPOOLES.2.2/MPI/spoolesMPI.h"
+#include "/usr/local/SPOOLES.2.2/SPOOLES.h"
+#include "/usr/local/SPOOLES.2.2/timings.h"
+#include <misc.h>
+#include <FrontMtx.h>
+#include <SymbFac.h>
 
 #if USE_MT
 int num_cpus = -1;
@@ -444,6 +450,48 @@ DenseMtx *fsolve_MT(struct factorinfo *pfi, DenseMtx *mtxB) {
 
 #endif
 
+#ifdef MPI_READY 
+
+DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
+
+    if (DEBUG_LVL > 100) printf("\tedong enters fsolve_MPI\n");
+    DenseMtx *mtxX;
+    /*
+     * STEP 8: permute the right hand side into the new ordering
+     */
+    ssolve_permuteB(mtxB, pfi->oldToNewIV, pfi->msgFile);
+
+
+    /*
+     * STEP 9: solve the linear system in parallel
+     */
+    {
+        mtxX = DenseMtx_new();
+        DenseMtx_init(mtxX, SPOOLES_REAL, 0, 0, pfi->size, 1, 1, pfi->size);
+        DenseMtx_zero(mtxX);
+        FrontMtx_MT_solve(pfi->frontmtx, mtxX, mtxB, pfi->mtxmanager,
+                pfi->solvemap, pfi->cpus, DEBUG_LVL,
+                pfi->msgFile);
+        if (DEBUG_LVL > 1) {
+            fprintf(pfi->msgFile, "\n\n solution matrix in new ordering");
+            DenseMtx_writeForHumanEye(mtxX, pfi->msgFile);
+            fflush(pfi->msgFile);
+        }
+    }
+
+    /*
+     * STEP 10: permute the solution into the original ordering
+     */
+    ssolve_permuteout(mtxX, pfi->newToOldIV, pfi->msgFile);
+
+    /* Cleanup */
+    DenseMtx_free(mtxB);
+
+    return mtxX;
+}
+
+#endif
+
 /** 
  * factor a system of the form (au - sigma * aub)
  * 
@@ -638,7 +686,7 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
         char processor_name[MPI_MAX_PROCESSOR_NAME];
         double starttime = 0.0, endtime;
         int maxdomainsize, maxsize, maxzeros;
-        MPI_Init(&argc, &argv);
+        MPI_Init(NULL, NULL);
         MPI_Comm_rank(MPI_COMM_WORLD, &myid);
         MPI_Comm_size(MPI_COMM_WORLD, &nproc);
         MPI_Get_processor_name(processor_name, &namelen);
@@ -676,6 +724,9 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
 
         if (DEBUG_LVL > 100) printf("\tedong: *inputformat = %d, *sigma = %lf\n", *inputformat, *sigma);
 
+        /*
+         * Populate mtxA matrix
+         */
 #ifdef PMI_READY
      
     /*----------------------------------------------------------------*/
@@ -834,8 +885,11 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
 
 
 
-    if (DEBUG_LVL > 100) printf("edong: let's see if USE_MT is defined\n");
-#ifdef USE_MT
+    if (DEBUG_LVL > 100) printf("edong: let's see which mode is defined\n");
+#ifdef PMI_READY
+    if (DEBUG_LVL > 100) printf("edong: USE_PMI is defined: Before diving into factor_MPI.\n");
+    factor_MPI(&pfi, mtxA, size, msgFile, &symmetryflagi4);
+#elif USE_MT
 
     if (DEBUG_LVL > 100) printf("edong: USE_MT is defined\n");
     /* Rules for parallel solve:
@@ -919,7 +973,7 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
     }
 #else
 
-    if (DEBUG_LVL > 100) printf("edong: preparing go into factor with USE_MT NOT defined\n");
+    if (DEBUG_LVL > 100) printf("edong: preparing go into factor while neither USE_MT nor USE_MPI is defined\n");
     printf(" Using 1 cpu for spooles.\n\n");
     factor(&pfi, mtxA, size, msgFile, &symmetryflagi4);
 #endif
@@ -944,6 +998,7 @@ void spooles_solve(double *b, ITG *neq) {
 
     //	printf(" Solving the system of equations using the symmetric spooles solver\n");
 
+    // edong: STEP 2 from p_solver to propagate mtxB
     {
         int i;
         mtxB = DenseMtx_new();
@@ -959,7 +1014,10 @@ void spooles_solve(double *b, ITG *neq) {
         }
     }
 
-#ifdef USE_MT
+#ifdef MPI_READY
+    if (DEBUG_LVL > 100) printf("edong: MPI_READY in spooles_solve. Going to invoke fsolve_MPI\n");
+    mtxX = fsolve_MPI(&pfi, mtxB);
+#elif USE_MT
     //	printf(" Using up to %d cpu(s) for spooles.\n\n", num_cpus);
 
     if (DEBUG_LVL > 100) printf("edong USE_MT: num_cpus = %d\n", num_cpus);
@@ -1009,6 +1067,7 @@ void spooles_cleanup() {
 FILE *msgFilf;
 struct factorinfo pfj;
 
+// edong TODO: this one has NOT been MPI ready!!!
 void spooles_factor_rad(double *ad, double *au, double *adb, double *aub,
         double *sigma, ITG *icol, ITG *irow,
         ITG *neq, ITG *nzs, ITG *symmetryflag, ITG *inputformat) {
@@ -1272,7 +1331,10 @@ void spooles_solve_rad(double *b, ITG *neq) {
         }
     }
 
-#ifdef USE_MT
+#ifdef MPI_READY
+    if (DEBUG_LVL > 100) printf("edong: MPI_READY in spooles_solve. Going to invoke fsolve_MPI\n");
+    mtxX = fsolve_MPI(&pfi, mtxB);
+#elif USE_MT
     printf(" Using up to %d cpu(s) for spooles.\n\n", num_cpus);
     if (num_cpus > 1) {
         /* do not use the multithreaded solver unless
