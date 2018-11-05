@@ -452,6 +452,131 @@ DenseMtx *fsolve_MT(struct factorinfo *pfi, DenseMtx *mtxB) {
 
 #ifdef MPI_READY 
 
+// edong: the factor_MPI should be updated using MPI code from p_solver
+void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, int *symmetryflagi4) {
+    Graph *graph;
+    IV *ownersIV;
+    IVL *symbfacIVL;
+    Chv *rootchv;
+
+    /* Initialize pfi: */
+    pfi->size = size;
+    pfi->msgFile = msgFile;
+    DVfill(10, pfi->cpus, 0.0);
+
+    /*
+     * STEP 1 : find a low-fill ordering
+     * (1) create the Graph object
+     */
+    ssolve_creategraph(&graph, &pfi->frontETree, mtxA, size, msgFile);
+
+    /*
+     * STEP 2: get the permutation, permute the matrix and 
+     *      front tree and get the symbolic factorization
+     */
+    ssolve_permuteA(&pfi->oldToNewIV, &pfi->newToOldIV, &symbfacIVL, pfi->frontETree,
+            mtxA, msgFile, symmetryflagi4);
+
+    /*
+     * STEP 3: Prepare distribution to multiple threads/cpus
+     */
+    {
+        DV *cumopsDV;
+        int nfront;
+
+        nfront = ETree_nfront(pfi->frontETree);
+
+        pfi->nthread = num_cpus;
+        if (pfi->nthread > nfront)
+            pfi->nthread = nfront;
+
+        cumopsDV = DV_new();
+        DV_init(cumopsDV, pfi->nthread, NULL);
+        ownersIV = ETree_ddMap(pfi->frontETree, SPOOLES_REAL, *symmetryflagi4,
+                cumopsDV, 1. / (2. * pfi->nthread));
+        if (DEBUG_LVL > 1) {
+            fprintf(msgFile,
+                    "\n\n map from fronts to threads");
+            IV_writeForHumanEye(ownersIV, msgFile);
+            fprintf(msgFile,
+                    "\n\n factor operations for each front");
+            DV_writeForHumanEye(cumopsDV, msgFile);
+            fflush(msgFile);
+        } else {
+            fprintf(msgFile, "\n\n Using %d threads\n",
+                    pfi->nthread);
+        }
+        DV_free(cumopsDV);
+    }
+
+    /*
+     * STEP 4: initialize the front matrix object
+     */
+    {
+        pfi->frontmtx = FrontMtx_new();
+        pfi->mtxmanager = SubMtxManager_new();
+        SubMtxManager_init(pfi->mtxmanager, LOCK_IN_PROCESS, 0);
+        FrontMtx_init(pfi->frontmtx, pfi->frontETree, symbfacIVL, SPOOLES_REAL,
+                *symmetryflagi4, FRONTMTX_DENSE_FRONTS,
+                SPOOLES_PIVOTING, LOCK_IN_PROCESS, 0, NULL,
+                pfi->mtxmanager, DEBUG_LVL, pfi->msgFile);
+    }
+
+    /*
+     * STEP 5: compute the numeric factorization in parallel
+     */
+    {
+        ChvManager *chvmanager;
+        int stats[20];
+        int error;
+
+        chvmanager = ChvManager_new();
+        ChvManager_init(chvmanager, LOCK_IN_PROCESS, 1);
+        IVfill(20, stats, 0);
+        rootchv = FrontMtx_MT_factorInpMtx(pfi->frontmtx, mtxA, MAGIC_TAU, MAGIC_DTOL,
+                chvmanager, ownersIV, 0,
+                &error, pfi->cpus, stats, DEBUG_LVL,
+                pfi->msgFile);
+        ChvManager_free(chvmanager);
+        if (DEBUG_LVL > 1) {
+            fprintf(msgFile, "\n\n factor matrix");
+            FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
+            fflush(pfi->msgFile);
+        }
+        if (rootchv != NULL) {
+            fprintf(pfi->msgFile, "\n\n matrix found to be singular\n");
+            exit(-1);
+        }
+        if (error >= 0) {
+            fprintf(pfi->msgFile, "\n\n fatal error at front %d", error);
+            exit(-1);
+        }
+    }
+
+    /*
+     * STEP 6: post-process the factorization
+     */
+    ssolve_postfactor(pfi->frontmtx, pfi->msgFile);
+
+    /*
+     * STEP 7: get the solve map object for the parallel solve
+     */
+    {
+        pfi->solvemap = SolveMap_new();
+        SolveMap_ddMap(pfi->solvemap, *symmetryflagi4,
+                FrontMtx_upperBlockIVL(pfi->frontmtx),
+                FrontMtx_lowerBlockIVL(pfi->frontmtx), pfi->nthread, ownersIV,
+                FrontMtx_frontTree(pfi->frontmtx), RNDSEED, DEBUG_LVL,
+                pfi->msgFile);
+    }
+
+    /* cleanup: */
+    InpMtx_free(mtxA);
+    IVL_free(symbfacIVL);
+    Graph_free(graph);
+    IV_free(ownersIV);
+}
+
 DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
 
     if (DEBUG_LVL > 100) printf("\tedong enters fsolve_MPI\n");
