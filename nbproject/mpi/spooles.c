@@ -74,6 +74,7 @@ IV *ownersIV;
 
 void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, int *symmetryflagi4);
 
+#ifdef MPI_READY
 static void ssolve_creategraph_MPI(Graph ** graph, ETree ** frontETree,
         InpMtx * mtxA, int size, FILE * msgFile) {
     /*----------------------------------------------------------------*/
@@ -127,6 +128,8 @@ static void ssolve_creategraph_MPI(Graph ** graph, ETree ** frontETree,
     *frontETree = ETree_MPI_Bcast(*frontETree, root,
             DEBUG_LVL, msgFile, MPI_COMM_WORLD);    
 }
+
+#endif
 
 /*
  * Substeps for solving A X = B:
