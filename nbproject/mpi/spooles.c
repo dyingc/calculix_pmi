@@ -58,6 +58,9 @@ int namelen;
 char processor_name[MPI_MAX_PROCESSOR_NAME];
 double starttime = 0.0, endtime;
 int maxdomainsize, maxsize, maxzeros;
+int firsttag = 0;
+int stats[20];
+IV *ownersIV;
 #endif
 
 #define TUNE_MAXZEROS  1000
@@ -190,7 +193,14 @@ static void ssolve_permuteA(IV ** oldToNewIV, IV ** newToOldIV,
     if (*symmetryflagi4 != 2) InpMtx_mapToUpperTriangle(mtxA);
     InpMtx_changeCoordType(mtxA, INPMTX_BY_CHEVRONS);
     InpMtx_changeStorageMode(mtxA, INPMTX_BY_VECTORS);
+#ifdef MPI_READY
+    *symbfacIVL = SymbFac_MPI_initFromInpMtx(frontETree, ownersIV, mtxA,
+        stats, DEBUG_LVL, msgFile, firsttag, MPI_COMM_WORLD);
+    firsttag += frontETree->nfront;
+#else
     *symbfacIVL = SymbFac_initFromInpMtx(frontETree, mtxA);
+#endif
+
     if (DEBUG_LVL > 1) {
         fprintf(msgFile, "\n\n old-to-new permutation vector");
         IV_writeForHumanEye(*oldToNewIV, msgFile);
@@ -526,7 +536,6 @@ DenseMtx *fsolve_MT(struct factorinfo *pfi, DenseMtx *mtxB) {
 // edong: the factor_MPI should be updated using MPI code from p_solver
 void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, int *symmetryflagi4) {
     Graph *graph;
-    IV *ownersIV;
     IVL *symbfacIVL;
     Chv *rootchv;
 
@@ -645,7 +654,6 @@ void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, i
     InpMtx_free(mtxA);
     IVL_free(symbfacIVL);
     Graph_free(graph);
-    IV_free(ownersIV);
 }
 
 DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
@@ -1589,6 +1597,9 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
 
     spooles_cleanup();
 
+#ifdef MPI_READY
+    IV_free(ownersIV);
+#endif
 }
 
 #endif
