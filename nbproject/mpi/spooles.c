@@ -457,8 +457,8 @@ struct factorinfo pfi;
  * representation
  */
 //ITG *symmetryflag
-void mtxA_propagate(InpMtx *mtxA, ITG *inputformat, double *sigma, int size, double *ad, , double *au, double *adb, double *aub,
-                        ITG *icol, ITG *irow, ITG *neq, ITG *nzs3, ITG *nzs, ) {
+void mtxA_propagate(InpMtx *mtxA, ITG *inputformat, double *sigma, int size, double *ad, double *au, double *adb, double *aub,
+                        ITG *icol, ITG *irow, ITG *neq, ITG *nzs3, ITG *nzs) {
 
 	    /* inputformat:
 	       0: sparse lower triangular matrix in ad (diagonal)
@@ -664,6 +664,14 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
 
         if (DEBUG_LVL > 100) printf("\tedong: *inputformat = %d, *sigma = %lf\n", *inputformat, *sigma);
 
+#ifdef PMI_READY
+     
+        mtxA_propagate(mtxA, inputformat, sigma, size, ad, au, adb, aub,
+                        icol, irow, neq, nzs3, nzs);
+
+#else
+        
+        {
         if (*inputformat == 0) {
             ipoint = 0;
 
@@ -779,7 +787,10 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
                 }
             }
         }
+        }
 
+#endif        
+        
         InpMtx_changeStorageMode(mtxA, INPMTX_BY_VECTORS);
 
         if (DEBUG_LVL > 1) {
