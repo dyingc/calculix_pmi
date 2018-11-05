@@ -53,6 +53,7 @@ int main(int argc, char *argv[]) {
        -----------------------------------------------------------------
        Find out the identity of this process and the number of processes
        -----------------------------------------------------------------
+     * edong: re-coded into spooles_factor, inside #ifdef PMI_READY
      */
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
@@ -78,6 +79,7 @@ int main(int argc, char *argv[]) {
                and create the InpMtx object
        --------------------------------------------
     // edong: It's completed in spooles_factor function in spooles.c
+    // edong: Now it's recoded in function mtxA_propagate
      */
     /* Read in the input matrix, A */
     sprintf(buffer, "matrix.%d.input", myid);
