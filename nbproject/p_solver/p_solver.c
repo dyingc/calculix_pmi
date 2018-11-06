@@ -279,7 +279,8 @@ int main(int argc, char *argv[]) {
        ------------------------------------------
        STEP 7: Compute the symbolic factorization
        ------------------------------------------
-    // edong: It's completed in ssolve_permuteA (last statement for mtxA) function in spooles.c
+    // edong: Its serial version is completed in ssolve_permuteA (last statement for mtxA) in spooles.c
+    // edong: The MPI version has been implemented in the new factor_MPI function
      */
     symbfacIVL = SymbFac_MPI_initFromInpMtx(frontETree, ownersIV, mtxA,
             stats, msglvl, msgFile, firsttag, MPI_COMM_WORLD);

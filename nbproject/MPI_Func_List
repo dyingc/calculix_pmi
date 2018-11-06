@@ -1,15 +1,19 @@
 
-spooles                                                 :   STEP 2 (get mtxB propagated)
+spooles
+    mtxB_propagate                                      :   STEP 2 (get mtxB propagated)
     spooles_factor
             mtxA_propagate                              :   STEP 1 (get mtxA propagated)
-            factor_MPI                                  :   STEP 5
+            factor_MPI                                  
                     ssolve_creategraph                  :   STEP 3
                             ssolve_creategraph_MPI
-                    ssolve_permuteA                     :   STEP 4 (save for the last statement which will be in STEP 7 inside factor_MPI)
+                    ssolve_permuteA                     :   STEP 4 (save for the last statement)
+                    ssolve_permuteB                     :   STEP 4 (Last statement)
+                    SELF                                :   STEP 5, STEP 6, STEP 7
                     ssolve_postfactor
 
 
-    spooles_solve (get mtxB initialized)                :   STEP 2
+    spooles_solve                
+            mtxB_propagate                              :   STEP 2
             fsolve_MPI
                     ssolve_permuteB                     :   STEP 4 (Last statement)
                     ssolve_permuteout

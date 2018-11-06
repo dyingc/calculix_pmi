@@ -43,6 +43,7 @@
 #if USE_MT
 int num_cpus = -1;
 #endif
+DenseMtx *mtxB;
 
 #ifdef MPI_READY
 int root = 0;
@@ -56,7 +57,6 @@ int symmetryflag = 0;
 int firsttag;
 int stats[20];
 IV *newToOldIV, *oldToNewIV, *ownedColumnsIV, *ownersIV, *vtxmapIV;
-DenseMtx *mtxB;
 #endif
 
 #define TUNE_MAXZEROS  1000
@@ -541,13 +541,20 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
      */
     ssolve_creategraph(&graph, &pfi->frontETree, *mtxA, size, msgFile);
 
-    /*
-     * STEP 2: get the permutation, permute the matrix and 
-     *      front tree and get the symbolic factorization
-     */
-    ssolve_permuteA(&pfi->oldToNewIV, &pfi->newToOldIV, &symbfacIVL, pfi->frontETree,
-            *mtxA, msgFile, symmetryflagi4);
-
+    // STEP 4 in p_solver
+    {
+        /*
+         * STEP 2: get the permutation, permute the matrix and 
+         *      front tree and get the symbolic factorization
+         */
+        ssolve_permuteA(&pfi->oldToNewIV, &pfi->newToOldIV, &symbfacIVL, pfi->frontETree,
+                *mtxA, msgFile, symmetryflagi4);
+        /*
+         * STEP 8: permute the right hand side into the new ordering
+         */
+        ssolve_permuteB(mtxB, pfi->oldToNewIV, pfi->msgFile);
+    }
+    
     // STEP 5 in p_solver
     /*
      * STEP 3: Prepare distribution to multiple MPI processors
@@ -590,7 +597,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     }
 
             
-    // STEP 6 in p_solver
+    // STEP 6 in p_solver: pure PMI code
     {
         firsttag = 0;
         newA = InpMtx_MPI_split(*mtxA, vtxmapIV, stats,
@@ -617,11 +624,11 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
 
     }
             
-        // STEP 7 in p_solver
+    // STEP 7 in p_solver
     {
-    *symbfacIVL = SymbFac_MPI_initFromInpMtx(frontETree, ownersIV, *mtxA,
+    *symbfacIVL = SymbFac_MPI_initFromInpMtx(&pfi->frontETree, ownersIV, *mtxA,
         stats, DEBUG_LVL, msgFile, firsttag, MPI_COMM_WORLD);
-    firsttag += frontETree->nfront;
+    firsttag += &pfi->frontETree->nfront;
     }
 
     
@@ -695,11 +702,11 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, InpMtx *mtxA, DenseMtx *mtxB) {
 
     if (DEBUG_LVL > 100) printf("\tedong enters fsolve_MPI\n");
     DenseMtx *mtxX;
+    
     /*
      * STEP 8: permute the right hand side into the new ordering
      */
     ssolve_permuteB(mtxB, pfi->oldToNewIV, pfi->msgFile);
-
 
     /*
      * STEP 9: solve the linear system in parallel
@@ -1241,7 +1248,9 @@ void mtxB_propagate(double *b, ITG *neq) {
  */
 
 void spooles_solve(double *b, ITG *neq) {
-
+    int size = *neq;
+    DenseMtx *mtxX;
+    
     if (DEBUG_LVL > 100) printf("edong enters spooles_solve: size = %d\n", *neq);
 
     mtxB_propagate(b, neq);
