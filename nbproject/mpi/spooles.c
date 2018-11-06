@@ -52,7 +52,6 @@ int num_cpus = -1;
 
 #ifdef MPI_READY
 int root = 0;
-int myid;
 int myid, nproc;
 int namelen;
 char processor_name[MPI_MAX_PROCESSOR_NAME];
@@ -922,14 +921,14 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
         /*
          * Populate mtxA matrix
          */
-#ifdef PMI_READY
+#ifdef MPI_READY
      
     /*----------------------------------------------------------------*/
     /*
        -----------------------------------------------------------------
        Find out the identity of this process and the number of processes
        -----------------------------------------------------------------
-     * edong: re-coded into spooles_factor, inside #ifdef PMI_READY
+     * edong: re-coded into spooles_factor, inside #ifdef MPI_READY
      */
         if (myid == 0) {
             printf("Solving the system of equations using SpoolesMPI\n\n");
@@ -939,7 +938,7 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
         /* Start a timer to determine how long the solve process takes */
         starttime = MPI_Wtime();
 
-        if (DEBUG_LVL > 100) printf("\nedong: PMI_READY\n");
+        if (DEBUG_LVL > 100) printf("\nedong: MPI_READY\n");
         MPI_Barrier(MPI_COMM_WORLD);  
         mtxA_propagate(mtxA, inputformat, sigma, size, ad, au, adb, aub,
                         icol, irow, neq, nzs3, nzs);
@@ -1081,7 +1080,7 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
 
 
     if (DEBUG_LVL > 100) printf("edong: let's see which mode is defined\n");
-#ifdef PMI_READY
+#ifdef MPI_READY
     if (DEBUG_LVL > 100) printf("edong: USE_PMI is defined: Before diving into factor_MPI.\n");
     factor_MPI(&pfi, mtxA, size, msgFile, &symmetryflagi4);
 #elif USE_MT
