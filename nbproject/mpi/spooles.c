@@ -39,12 +39,6 @@
 #include <unistd.h>
 #include "CalculiX.h"
 #include "spooles.h"
-#include "/usr/local/SPOOLES.2.2/MPI/spoolesMPI.h"
-#include "/usr/local/SPOOLES.2.2/SPOOLES.h"
-#include "/usr/local/SPOOLES.2.2/timings.h"
-#include <misc.h>
-#include <FrontMtx.h>
-#include <SymbFac.h>
 
 #if USE_MT
 int num_cpus = -1;
@@ -52,7 +46,6 @@ int num_cpus = -1;
 
 #ifdef MPI_READY
 int root = 0;
-int myid;
 int myid, nproc;
 int namelen;
 char processor_name[MPI_MAX_PROCESSOR_NAME];
@@ -71,8 +64,6 @@ IV *ownersIV;
 #define MAGIC_DTOL  0.0
 #define MAGIC_TAU  100.0
 
-
-void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, int *symmetryflagi4);
 
 #ifdef MPI_READY
 static void ssolve_creategraph_MPI(Graph ** graph, ETree ** frontETree,
@@ -922,14 +913,14 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
         /*
          * Populate mtxA matrix
          */
-#ifdef PMI_READY
+#ifdef MPI_READY
      
     /*----------------------------------------------------------------*/
     /*
        -----------------------------------------------------------------
        Find out the identity of this process and the number of processes
        -----------------------------------------------------------------
-     * edong: re-coded into spooles_factor, inside #ifdef PMI_READY
+     * edong: re-coded into spooles_factor, inside #ifdef MPI_READY
      */
         if (myid == 0) {
             printf("Solving the system of equations using SpoolesMPI\n\n");
@@ -939,7 +930,7 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
         /* Start a timer to determine how long the solve process takes */
         starttime = MPI_Wtime();
 
-        if (DEBUG_LVL > 100) printf("\nedong: PMI_READY\n");
+        if (DEBUG_LVL > 100) printf("\nedong: MPI_READY\n");
         MPI_Barrier(MPI_COMM_WORLD);  
         mtxA_propagate(mtxA, inputformat, sigma, size, ad, au, adb, aub,
                         icol, irow, neq, nzs3, nzs);
@@ -1081,8 +1072,8 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
 
 
     if (DEBUG_LVL > 100) printf("edong: let's see which mode is defined\n");
-#ifdef PMI_READY
-    if (DEBUG_LVL > 100) printf("edong: USE_PMI is defined: Before diving into factor_MPI.\n");
+#ifdef MPI_READY
+    if (DEBUG_LVL > 100) printf("edong: MPI_READY is defined: Before diving into factor_MPI.\n");
     factor_MPI(&pfi, mtxA, size, msgFile, &symmetryflagi4);
 #elif USE_MT
 
@@ -1168,7 +1159,7 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
     }
 #else
 
-    if (DEBUG_LVL > 100) printf("edong: preparing go into factor while neither USE_MT nor USE_MPI is defined\n");
+    if (DEBUG_LVL > 100) printf("edong: preparing go into factor while neither USE_MT nor MPI_READY is defined\n");
     printf(" Using 1 cpu for spooles.\n\n");
     factor(&pfi, mtxA, size, msgFile, &symmetryflagi4);
 #endif
