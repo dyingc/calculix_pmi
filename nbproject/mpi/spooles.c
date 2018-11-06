@@ -31,7 +31,7 @@
    factorized radiation matrices (_rad appended) are kept at the same time
    in the program */
 
-#ifdef SPOOLES
+//#ifdef SPOOLES
 
 #include <stdio.h>
 #include <math.h>
@@ -60,6 +60,7 @@ int maxdomainsize, maxsize, maxzeros;
 int firsttag = 0;
 int stats[20];
 IV *ownersIV;
+void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, int *symmetryflagi4);
 #endif
 
 #define TUNE_MAXZEROS  1000
@@ -69,9 +70,6 @@ IV *ownersIV;
 #define RNDSEED  7892713
 #define MAGIC_DTOL  0.0
 #define MAGIC_TAU  100.0
-
-
-void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, int *symmetryflagi4);
 
 #ifdef MPI_READY
 static void ssolve_creategraph_MPI(Graph ** graph, ETree ** frontETree,
@@ -367,7 +365,7 @@ DenseMtx *fsolve(struct factorinfo *pfi, DenseMtx *mtxB) {
     return mtxX;
 }
 
-#ifdef USE_MT 
+#ifdef USE_MT
 
 void factor_MT(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, int *symmetryflagi4) {
     Graph *graph;
@@ -1081,8 +1079,9 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
 
     if (DEBUG_LVL > 100) printf("edong: let's see which mode is defined\n");
 #ifdef MPI_READY
-    if (DEBUG_LVL > 100) printf("edong: USE_PMI is defined: Before diving into factor_MPI.\n");
+    if (DEBUG_LVL > 100) printf("edong: MPI_READY is defined: Before diving into factor_MPI.\n");
     factor_MPI(&pfi, mtxA, size, msgFile, &symmetryflagi4);
+
 #elif USE_MT
 
     if (DEBUG_LVL > 100) printf("edong: USE_MT is defined\n");
@@ -1167,7 +1166,7 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
     }
 #else
 
-    if (DEBUG_LVL > 100) printf("edong: preparing go into factor while neither USE_MT nor USE_MPI is defined\n");
+    if (DEBUG_LVL > 100) printf("edong: preparing go into factor while neither USE_MT nor MPI_READY is defined\n");
     printf(" Using 1 cpu for spooles.\n\n");
     factor(&pfi, mtxA, size, msgFile, &symmetryflagi4);
 #endif
@@ -1604,4 +1603,4 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
 #endif
 }
 
-#endif
+//#endif
