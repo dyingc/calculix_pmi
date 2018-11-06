@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
      */
     // edong: We can see some similar code in the first part of STEP 3 in factor_MT (NOT the serial factor) in spooles.c, 
     // edong: to get the ownersIV
-    // edong: The second part, about vtxmapIV, should be used by STEP 7 which is an MPI dedicated one
+    // edong: The second part, about vtxmapIV, should be used by STEP 6 which is an MPI dedicated one
     /* This is all new from the serial code:               */
     /* Obtains map from fronts to processors.  Also a map  */
     /* from vertices to processors is created that enables */

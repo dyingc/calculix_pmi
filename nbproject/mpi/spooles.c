@@ -48,12 +48,15 @@ int num_cpus = -1;
 int root = 0;
 int myid, nproc;
 int namelen;
+double cutoff, droptol = 0.0, minops, tau = 100.;
 char processor_name[MPI_MAX_PROCESSOR_NAME];
 double starttime = 0.0, endtime;
 int maxdomainsize, maxsize, maxzeros;
-int firsttag = 0;
+int symmetryflag = 0;
+int firsttag;
 int stats[20];
-IV *ownersIV;
+IV *newToOldIV, *oldToNewIV, *ownedColumnsIV, *ownersIV, *vtxmapIV;
+DenseMtx *mtxB;
 #endif
 
 #define TUNE_MAXZEROS  1000
@@ -186,11 +189,7 @@ static void ssolve_permuteA(IV ** oldToNewIV, IV ** newToOldIV,
     if (*symmetryflagi4 != 2) InpMtx_mapToUpperTriangle(mtxA);
     InpMtx_changeCoordType(mtxA, INPMTX_BY_CHEVRONS);
     InpMtx_changeStorageMode(mtxA, INPMTX_BY_VECTORS);
-#ifdef MPI_READY
-    *symbfacIVL = SymbFac_MPI_initFromInpMtx(frontETree, ownersIV, mtxA,
-        stats, DEBUG_LVL, msgFile, firsttag, MPI_COMM_WORLD);
-    firsttag += frontETree->nfront;
-#else
+#ifndef MPI_READY
     *symbfacIVL = SymbFac_initFromInpMtx(frontETree, mtxA);
 #endif
 
@@ -359,7 +358,6 @@ DenseMtx *fsolve(struct factorinfo *pfi, DenseMtx *mtxB) {
 }
 
 #ifdef USE_MT
-
 void factor_MT(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, int *symmetryflagi4) {
     Graph *graph;
     IV *ownersIV;
@@ -521,16 +519,16 @@ DenseMtx *fsolve_MT(struct factorinfo *pfi, DenseMtx *mtxB) {
 
     return mtxX;
 }
-
 #endif
 
 #ifdef MPI_READY 
-
 // edong: the factor_MPI should be updated using MPI code from p_solver
-void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, int *symmetryflagi4) {
+void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, int *symmetryflagi4) {
     Graph *graph;
     IVL *symbfacIVL;
     Chv *rootchv;
+    InpMtx *newA;
+    DenseMtx *newB;
 
     /* Initialize pfi: */
     pfi->size = size;
@@ -541,47 +539,92 @@ void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, i
      * STEP 1 : find a low-fill ordering
      * (1) create the Graph object
      */
-    ssolve_creategraph(&graph, &pfi->frontETree, mtxA, size, msgFile);
+    ssolve_creategraph(&graph, &pfi->frontETree, *mtxA, size, msgFile);
 
     /*
      * STEP 2: get the permutation, permute the matrix and 
      *      front tree and get the symbolic factorization
      */
     ssolve_permuteA(&pfi->oldToNewIV, &pfi->newToOldIV, &symbfacIVL, pfi->frontETree,
-            mtxA, msgFile, symmetryflagi4);
+            *mtxA, msgFile, symmetryflagi4);
 
+    // STEP 5 in p_solver
     /*
-     * STEP 3: Prepare distribution to multiple threads/cpus
+     * STEP 3: Prepare distribution to multiple MPI processors
      */
     {
-        DV *cumopsDV;
-        int nfront;
+        // 1st part of STEP 5 in p_solver
+        {
+            DV *cumopsDV;
+            int nfront;
+            cutoff = 1. / (2. * nproc);
+            if(DEBUG_LVL > 100) printf("\tedong: In STEP 3 of factor_MPI, nproc = %d, cutoff = %lf\n", nproc, cutoff);
 
-        nfront = ETree_nfront(pfi->frontETree);
+            nfront = ETree_nfront(pfi->frontETree);
 
-        pfi->nthread = num_cpus;
-        if (pfi->nthread > nfront)
-            pfi->nthread = nfront;
+            pfi->nthread = num_cpus;
+            if (pfi->nthread > nfront)
+                pfi->nthread = nfront;
 
-        cumopsDV = DV_new();
-        DV_init(cumopsDV, pfi->nthread, NULL);
-        ownersIV = ETree_ddMap(pfi->frontETree, SPOOLES_REAL, *symmetryflagi4,
-                cumopsDV, 1. / (2. * pfi->nthread));
-        if (DEBUG_LVL > 1) {
-            fprintf(msgFile,
-                    "\n\n map from fronts to threads");
-            IV_writeForHumanEye(ownersIV, msgFile);
-            fprintf(msgFile,
-                    "\n\n factor operations for each front");
-            DV_writeForHumanEye(cumopsDV, msgFile);
-            fflush(msgFile);
-        } else {
-            fprintf(msgFile, "\n\n Using %d threads\n",
-                    pfi->nthread);
+            cumopsDV = DV_new();
+            DV_init(cumopsDV, nproc, NULL);
+            ownersIV = ETree_ddMap(pfi->frontETree, SPOOLES_REAL, *symmetryflagi4,
+                    cumopsDV, cutoff);
+            DV_free(cumopsDV);
         }
-        DV_free(cumopsDV);
+        // 2nd part of STEP 5 in p_solver
+        {
+            vtxmapIV = IV_new();
+            IV_init(vtxmapIV, size, NULL);
+            IVgather(size, IV_entries(vtxmapIV),
+                IV_entries(ownersIV), ETree_vtxToFront(pfi->frontETree));
+            if (DEBUG_LVL > 1) {
+                fprintf(msgFile, "\n\n map from fronts to owning processes");
+                IV_writeForHumanEye(ownersIV, msgFile);
+                fprintf(msgFile, "\n\n map from vertices to owning processes");
+                IV_writeForHumanEye(vtxmapIV, msgFile);
+                fflush(msgFile);
+            }
+
+        }
     }
 
+            
+    // STEP 6 in p_solver
+    {
+        firsttag = 0;
+        newA = InpMtx_MPI_split(*mtxA, vtxmapIV, stats,
+            DEBUG_LVL, msgFile, firsttag, MPI_COMM_WORLD);
+        firsttag++;
+        InpMtx_free(*mtxA);
+        *mtxA = newA;
+        InpMtx_changeStorageMode(*mtxA, INPMTX_BY_VECTORS);
+        if (DEBUG_LVL > 1) {
+            fprintf(msgFile, "\n\n split InpMtx");
+            InpMtx_writeForHumanEye(*mtxA, msgFile);
+            fflush(msgFile);
+        }
+        newB = DenseMtx_MPI_splitByRows(mtxB, vtxmapIV, stats, DEBUG_LVL,
+                msgFile, firsttag, MPI_COMM_WORLD);
+        DenseMtx_free(mtxB);
+        mtxB = newB;
+        firsttag += nproc;
+        if (DEBUG_LVL > 1) {
+            fprintf(msgFile, "\n\n split DenseMtx B");
+            DenseMtx_writeForHumanEye(mtxB, msgFile);
+            fflush(msgFile);
+        }
+
+    }
+            
+        // STEP 7 in p_solver
+    {
+    *symbfacIVL = SymbFac_MPI_initFromInpMtx(frontETree, ownersIV, *mtxA,
+        stats, DEBUG_LVL, msgFile, firsttag, MPI_COMM_WORLD);
+    firsttag += frontETree->nfront;
+    }
+
+    
     /*
      * STEP 4: initialize the front matrix object
      */
@@ -600,13 +643,12 @@ void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, i
      */
     {
         ChvManager *chvmanager;
-        int stats[20];
         int error;
 
         chvmanager = ChvManager_new();
         ChvManager_init(chvmanager, LOCK_IN_PROCESS, 1);
         IVfill(20, stats, 0);
-        rootchv = FrontMtx_MT_factorInpMtx(pfi->frontmtx, mtxA, MAGIC_TAU, MAGIC_DTOL,
+        rootchv = FrontMtx_MT_factorInpMtx(pfi->frontmtx, *mtxA, MAGIC_TAU, MAGIC_DTOL,
                 chvmanager, ownersIV, 0,
                 &error, pfi->cpus, stats, DEBUG_LVL,
                 pfi->msgFile);
@@ -644,12 +686,12 @@ void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, i
     }
 
     /* cleanup: */
-    InpMtx_free(mtxA);
+    InpMtx_free(*mtxA);
     IVL_free(symbfacIVL);
     Graph_free(graph);
 }
 
-DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
+DenseMtx *fsolve_MPI(struct factorinfo *pfi, InpMtx *mtxA, DenseMtx *mtxB) {
 
     if (DEBUG_LVL > 100) printf("\tedong enters fsolve_MPI\n");
     DenseMtx *mtxX;
@@ -686,7 +728,6 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
 
     return mtxX;
 }
-
 #endif
 
 /** 
@@ -909,9 +950,8 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
 
         if (DEBUG_LVL > 100) printf("\tedong: *inputformat = %d, *sigma = %lf\n", *inputformat, *sigma);
 
-        /*
-         * Populate mtxA matrix
-         */
+        
+        // Populate mtxA matrix
 #ifdef MPI_READY
      
     /*----------------------------------------------------------------*/
@@ -935,6 +975,7 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
                         icol, irow, neq, nzs3, nzs);
 
 #else
+    {
         if (DEBUG_LVL > 100) printf("\nedong: MPI_NOT_READY\n");
         
         {
@@ -1054,7 +1095,7 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
             }
         }
         }
-
+    }
 #endif        
         
         InpMtx_changeStorageMode(mtxA, INPMTX_BY_VECTORS);
@@ -1073,9 +1114,9 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
     if (DEBUG_LVL > 100) printf("edong: let's see which mode is defined\n");
 #ifdef MPI_READY
     if (DEBUG_LVL > 100) printf("edong: MPI_READY is defined: Before diving into factor_MPI.\n");
-    factor_MPI(&pfi, mtxA, size, msgFile, &symmetryflagi4);
+    factor_MPI(&pfi, &mtxA, size, msgFile, &symmetryflagi4);
 #elif USE_MT
-
+    {
     if (DEBUG_LVL > 100) printf("edong: USE_MT is defined\n");
     /* Rules for parallel solve:
        a. determining the maximum number of cpus:
@@ -1156,32 +1197,23 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
         if (DEBUG_LVL > 100) printf("edong: preparing go into factor with USE_MT defined\n");
         factor(&pfi, mtxA, size, msgFile, &symmetryflagi4);
     }
+    }
 #else
-
+    {
     if (DEBUG_LVL > 100) printf("edong: preparing go into factor while neither USE_MT nor MPI_READY is defined\n");
     printf(" Using 1 cpu for spooles.\n\n");
     factor(&pfi, mtxA, size, msgFile, &symmetryflagi4);
+    }
 #endif
 }
 
-/** 
- * solve a system of equations with rhs b
- * factorization must have been performed before 
- * using spooles_factor
- * 
- */
-
-void spooles_solve(double *b, ITG *neq) {
-
-    if (DEBUG_LVL > 100) printf("edong enters spooles_solve: size = %d\n", *neq);
+void mtxB_propagate(double *b, ITG *neq) {
     /* rhs vector B
      * Note that there is only one rhs vector, thus
      * a bit simpler that the AllInOne example
      */
     int size = *neq;
-    DenseMtx *mtxB, *mtxX;
-
-    //	printf(" Solving the system of equations using the symmetric spooles solver\n");
+    DenseMtx *mtxX;
 
     // edong: STEP 2 from p_solver to propagate mtxB
     {
@@ -1198,7 +1230,22 @@ void spooles_solve(double *b, ITG *neq) {
             fflush(msgFile);
         }
     }
+    
+}
 
+/** 
+ * solve a system of equations with rhs b
+ * factorization must have been performed before 
+ * using spooles_factor
+ * 
+ */
+
+void spooles_solve(double *b, ITG *neq) {
+
+    if (DEBUG_LVL > 100) printf("edong enters spooles_solve: size = %d\n", *neq);
+
+    mtxB_propagate(b, neq);
+    
 #ifdef MPI_READY
     if (DEBUG_LVL > 100) printf("edong: MPI_READY in spooles_solve. Going to invoke fsolve_MPI\n");
     mtxX = fsolve_MPI(&pfi, mtxB);
@@ -1572,16 +1619,17 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
         double *b, ITG *icol, ITG *irow, ITG *neq, ITG *nzs,
         ITG *symmetryflag, ITG *inputformat, ITG *nzs3) {
 
+    if (DEBUG_LVL > 100) printf("edong enters spooles\n");
+
+    if (*neq == 0) return;
+
 #ifdef MPI_READY
     MPI_Init(NULL, NULL);
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
     MPI_Get_processor_name(processor_name, &namelen);
+    mtxB_propagate(b, neq);  // STEP 2 in p_solver
 #endif
-
-    if (DEBUG_LVL > 100) printf("edong enters spooles\n");
-
-    if (*neq == 0) return;
 
     spooles_factor(ad, au, adb, aub, sigma, icol, irow, neq, nzs, symmetryflag,
             inputformat, nzs3);
