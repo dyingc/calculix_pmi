@@ -39,12 +39,6 @@
 #include <unistd.h>
 #include "CalculiX.h"
 #include "spooles.h"
-#include "/usr/local/SPOOLES.2.2/MPI/spoolesMPI.h"
-#include "/usr/local/SPOOLES.2.2/SPOOLES.h"
-#include "/usr/local/SPOOLES.2.2/timings.h"
-#include <misc.h>
-#include <FrontMtx.h>
-#include <SymbFac.h>
 
 #if USE_MT
 int num_cpus = -1;
@@ -941,7 +935,7 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
                         icol, irow, neq, nzs3, nzs);
 
 #else
-        if (DEBUG_LVL > 100) printf("\nedong: PMI_NOT_READY\n");
+        if (DEBUG_LVL > 100) printf("\nedong: MPI_NOT_READY\n");
         
         {
         if (*inputformat == 0) {
