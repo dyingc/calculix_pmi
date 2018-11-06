@@ -936,7 +936,7 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
                         icol, irow, neq, nzs3, nzs);
 
 #else
-        if (DEBUG_LVL > 100) printf("\nedong: PMI_NOT_READY\n");
+        if (DEBUG_LVL > 100) printf("\nedong: MPI_NOT_READY\n");
         
         {
         if (*inputformat == 0) {
@@ -1073,7 +1073,11 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
 
     if (DEBUG_LVL > 100) printf("edong: let's see which mode is defined\n");
 #ifdef MPI_READY
+<<<<<<< HEAD
     if (DEBUG_LVL > 100) printf("edong: MPI_READY is defined: Before diving into factor_MPI.\n");
+=======
+    if (DEBUG_LVL > 100) printf("edong: MPI_READY is defined: Before diving into factor_MPI.\n");
+>>>>>>> edc7938c59de01f288bf47b22080823961583718
     factor_MPI(&pfi, mtxA, size, msgFile, &symmetryflagi4);
 #elif USE_MT
 

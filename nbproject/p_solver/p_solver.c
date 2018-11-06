@@ -150,7 +150,8 @@ int main(int argc, char *argv[]) {
        on the number of processors
        (4) Broadcast ordering to the other processors
        -------------------------------------------------------
-    // edong: It's completed in ssolve_creategraph function in spooles.c
+    // edong: It's completed in ssolve_creategraph function (ssolve_creategraph will invoke ssolve_creategraph_MPI when in MPI env) in spooles.c
+    // edong: This means we don't have to explicitly invoke ssolve_creategraph_MPI in other functions save for (ssolve_creategraph itself)
      */
     if (myid == 0) {
         graph = Graph_new();
