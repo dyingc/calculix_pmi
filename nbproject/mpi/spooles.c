@@ -31,7 +31,7 @@
    factorized radiation matrices (_rad appended) are kept at the same time
    in the program */
 
-//#ifdef SPOOLES
+#ifdef SPOOLES
 
 #include <stdio.h>
 #include <math.h>
@@ -60,7 +60,6 @@ int maxdomainsize, maxsize, maxzeros;
 int firsttag = 0;
 int stats[20];
 IV *ownersIV;
-void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, int *symmetryflagi4);
 #endif
 
 #define TUNE_MAXZEROS  1000
@@ -1081,7 +1080,6 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
 #ifdef MPI_READY
     if (DEBUG_LVL > 100) printf("edong: MPI_READY is defined: Before diving into factor_MPI.\n");
     factor_MPI(&pfi, mtxA, size, msgFile, &symmetryflagi4);
-
 #elif USE_MT
 
     if (DEBUG_LVL > 100) printf("edong: USE_MT is defined\n");
@@ -1603,4 +1601,4 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
 #endif
 }
 
-//#endif
+#endif
