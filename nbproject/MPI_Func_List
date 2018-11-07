@@ -8,7 +8,7 @@ spooles
                             ssolve_creategraph_MPI
                     ssolve_permuteA                     :   STEP 4 (save for the last statement)
                     ssolve_permuteB                     :   STEP 4 (Last statement)
-                    SELF                                :   STEP 5, STEP 6, STEP 7
+                    SELF                                :   STEP 5, STEP 6, STEP 7, STEP 8 (use LOCK_IN_PROCESS from factor_MT)
                     ssolve_postfactor
 
 

@@ -539,7 +539,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
      * STEP 1 : find a low-fill ordering
      * (1) create the Graph object
      */
-    ssolve_creategraph(&graph, &pfi->frontETree, *mtxA, size, msgFile);
+    ssolve_creategraph(&graph, &pfi->frontETree, *mtxA, size, pfi->msgFile);
 
     // STEP 4 in p_solver
     {
@@ -548,7 +548,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
          *      front tree and get the symbolic factorization
          */
         ssolve_permuteA(&pfi->oldToNewIV, &pfi->newToOldIV, &symbfacIVL, pfi->frontETree,
-                *mtxA, msgFile, symmetryflagi4);
+                *mtxA, pfi->msgFile, symmetryflagi4);
         /*
          * STEP 8: permute the right hand side into the new ordering
          */
@@ -586,11 +586,11 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
             IVgather(size, IV_entries(vtxmapIV),
                 IV_entries(ownersIV), ETree_vtxToFront(pfi->frontETree));
             if (DEBUG_LVL > 1) {
-                fprintf(msgFile, "\n\n map from fronts to owning processes");
-                IV_writeForHumanEye(ownersIV, msgFile);
-                fprintf(msgFile, "\n\n map from vertices to owning processes");
-                IV_writeForHumanEye(vtxmapIV, msgFile);
-                fflush(msgFile);
+                fprintf(pfi->msgFile, "\n\n map from fronts to owning processes");
+                IV_writeForHumanEye(ownersIV, pfi->msgFile);
+                fprintf(pfi->msgFile, "\n\n map from vertices to owning processes");
+                IV_writeForHumanEye(vtxmapIV, pfi->msgFile);
+                fflush(pfi->msgFile);
             }
 
         }
@@ -601,7 +601,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     {
         firsttag = 0;
         newA = InpMtx_MPI_split(*mtxA, vtxmapIV, stats,
-            DEBUG_LVL, msgFile, firsttag, MPI_COMM_WORLD);
+            DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
         firsttag++;
         InpMtx_free(*mtxA);
         *mtxA = newA;
@@ -612,7 +612,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
             fflush(msgFile);
         }
         newB = DenseMtx_MPI_splitByRows(mtxB, vtxmapIV, stats, DEBUG_LVL,
-                msgFile, firsttag, MPI_COMM_WORLD);
+                pfi->msgFile, firsttag, MPI_COMM_WORLD);
         DenseMtx_free(mtxB);
         mtxB = newB;
         firsttag += nproc;
@@ -627,15 +627,17 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     // STEP 7 in p_solver
     {
     *symbfacIVL = SymbFac_MPI_initFromInpMtx(&pfi->frontETree, ownersIV, *mtxA,
-        stats, DEBUG_LVL, msgFile, firsttag, MPI_COMM_WORLD);
+        stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
     firsttag += &pfi->frontETree->nfront;
     }
-
     
+    // STEP 8 in p_solver
     /*
      * STEP 4: initialize the front matrix object
      */
     {
+        // edong: In p_solver / factor, we NO_LOCK instead of LOCK_IN_PROCESS in 
+        // edong: factor_MT. Chosen the value from factor_MT
         pfi->frontmtx = FrontMtx_new();
         pfi->mtxmanager = SubMtxManager_new();
         SubMtxManager_init(pfi->mtxmanager, LOCK_IN_PROCESS, 0);
@@ -645,6 +647,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
                 pfi->mtxmanager, DEBUG_LVL, pfi->msgFile);
     }
 
+    // STEP 9 in p_solver
     /*
      * STEP 5: compute the numeric factorization in parallel
      */
@@ -653,32 +656,48 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         int error;
 
         chvmanager = ChvManager_new();
-        ChvManager_init(chvmanager, LOCK_IN_PROCESS, 1);
-        IVfill(20, stats, 0);
-        rootchv = FrontMtx_MT_factorInpMtx(pfi->frontmtx, *mtxA, MAGIC_TAU, MAGIC_DTOL,
+        // edong: Change the mutex lock from NO_LOCK to LOCK_IN_PROCESS as in factor_MT
+        // edong: Change the mode (how object will be released) from 1 to 0 according to p_solver
+        ChvManager_init(chvmanager, LOCK_IN_PROCESS, 0);
+        //IVfill(20, stats, 0); // edong: we can't initialize stats here as it's a global variable and has been changed in the previous steps
+        rootchv = FrontMtx_MPI_factorInpMtx(pfi->frontmtx, *mtxA, MAGIC_TAU, MAGIC_DTOL,
                 chvmanager, ownersIV, 0,
                 &error, pfi->cpus, stats, DEBUG_LVL,
-                pfi->msgFile);
+                pfi->msgFile, firsttag, MPI_COMM_WORLD);
         ChvManager_free(chvmanager);
+        firsttag += 3 * &pfi->frontETree->nfront + 2;
         if (DEBUG_LVL > 1) {
-            fprintf(msgFile, "\n\n factor matrix");
+            fprintf(pfi->msgFile, "\n\n factor matrix");
             FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
             fflush(pfi->msgFile);
         }
         if (rootchv != NULL) {
-            fprintf(pfi->msgFile, "\n\n matrix found to be singular\n");
+            fprintf(pfi->msgFile, "\n\n proc %d: matrix found to be singular. Exit factor_MPI\n", myid);
+            MPI_Finalize();
             exit(-1);
         }
         if (error >= 0) {
-            fprintf(pfi->msgFile, "\n\n fatal error at front %d", error);
+            fprintf(pfi->msgFile, "\n\n proc %d: fatal error at front %d, Exit factor_MPI\n", myid, error);
+            MPI_Finalize();
             exit(-1);
         }
     }
 
+    // STEP 10 in p_solver
     /*
      * STEP 6: post-process the factorization
      */
-    ssolve_postfactor(pfi->frontmtx, pfi->msgFile);
+    {
+        //ssolve_postfactor(pfi->frontmtx, pfi->msgFile); // edong: we use our similar but MPI version here
+        FrontMtx_MPI_postProcess(pfi->frontmtx, ownersIV, stats, DEBUG_LVL,
+        pfi->msgFile, firsttag, MPI_COMM_WORLD);
+        firsttag += 5 * nproc;
+        if (DEBUG_LVL > 1) {
+            fprintf(pfi->msgFile, "\n\n numeric factorization after post-processing");
+            FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
+            fflush(pfi->msgFile);
+        }
+    }
 
     /*
      * STEP 7: get the solve map object for the parallel solve
