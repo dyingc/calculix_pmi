@@ -737,7 +737,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     //IV_free(ownersIV); // edong: In MPI code, the ownersIV is a global variable that will be used in fsolve_MPI as well. It then can only be cleaned in spooles, the main one
 }
 
-DenseMtx *fsolve_MPI(struct factorinfo *pfi, InpMtx *mtxA, DenseMtx *mtxB) {
+DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
 
     if (DEBUG_LVL > 100) printf("\tedong enters fsolve_MPI\n");
     DenseMtx *mtxX;
