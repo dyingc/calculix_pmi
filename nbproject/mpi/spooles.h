@@ -71,7 +71,4 @@ void spooles_factor_rad(double *ad, double *au, double *adb, double *aub,
 void spooles_solve_rad(double *b, ITG *neq);
 
 void spooles_cleanup_rad();
-
-void factor_MPI(struct factorinfo *pfi, InpMtx *mtxA, int size, FILE *msgFile, int *symmetryflagi4);
-
 #endif

@@ -49,6 +49,8 @@ int *rowind;
 int nrow;
 
 #ifdef MPI_READY
+//char buffer[20];
+//FILE *inputFile;
 int root = 0;
 int myid, nproc;
 int namelen;
@@ -57,7 +59,7 @@ char processor_name[MPI_MAX_PROCESSOR_NAME];
 double starttime = 0.0, endtime;
 int maxdomainsize, maxsize, maxzeros;
 int symmetryflag = 0;
-int firsttag;
+int firsttag, nmycol;
 int stats[20];
 IV *ownedColumnsIV, *ownersIV, *vtxmapIV; // *newToOldIV, *oldToNewIV
 #endif
@@ -73,6 +75,8 @@ IV *ownedColumnsIV, *ownersIV, *vtxmapIV; // *newToOldIV, *oldToNewIV
 #ifdef MPI_READY
 static void ssolve_creategraph_MPI(Graph ** graph, ETree ** frontETree,
         InpMtx * mtxA, int size, FILE * msgFile) {
+    IVL *adjIVL;
+    int nedges;
     /*----------------------------------------------------------------*/
     /*
        -------------------------------------------------------
@@ -822,24 +826,21 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
         fprintf(stdout, "Total time for %s: %f\n", processor_name,
                 endtime - starttime);
         /* Now gather the solution the processor 0 */
-        if (myid == 0) {
+        /*if (myid == 0) {
             printf("%d\n", nrow);
             sprintf(buffer, "x.result");
             inputFile = fopen(buffer, "w");
-            for (jrow = 0; jrow < ncol; jrow++) {
+            for (int jrow = 0; jrow < ncol; jrow++) {
                 fprintf(inputFile, "%1.5e\n", DenseMtx_entries(mtxX)[jrow]);
             }
             fclose(inputFile);
-        }
+        }*/
     }
 
     /* Cleanup */
     {
         /* End the MPI environment */
         MPI_Finalize();
-        /* Free up memory */
-        IVL_free(symbfacIVL);
-        Graph_free(graph);
     }
 
     return mtxX;
