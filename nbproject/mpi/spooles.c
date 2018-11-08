@@ -639,9 +639,9 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     // STEP 7 in p_solver
     {
         if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: STEP 7 in p_solver\n");
-        *symbfacIVL = SymbFac_MPI_initFromInpMtx(&pfi->frontETree, ownersIV, *mtxA,
+        symbfacIVL = SymbFac_MPI_initFromInpMtx(&pfi->frontETree, ownersIV, *mtxA,
             stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
-        firsttag += &pfi->frontETree->nfront;
+        firsttag += pfi->frontETree->nfront;
     }
     
     // STEP 8 in p_solver
@@ -680,7 +680,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
                 &error, pfi->cpus, stats, DEBUG_LVL,
                 pfi->msgFile, firsttag, MPI_COMM_WORLD);
         ChvManager_free(chvmanager);
-        firsttag += 3 * &pfi->frontETree->nfront + 2;
+        firsttag += 3 * pfi->frontETree->nfront + 2;
         if (DEBUG_LVL > 1) {
             fprintf(pfi->msgFile, "\n\n factor matrix");
             FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
