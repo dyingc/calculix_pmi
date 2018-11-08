@@ -43,6 +43,7 @@
 #if USE_MT
 int num_cpus = -1;
 #endif
+
 DenseMtx *mtxB;
 int *rowind;
 int nrow;
@@ -58,7 +59,7 @@ int maxdomainsize, maxsize, maxzeros;
 int symmetryflag = 0;
 int firsttag;
 int stats[20];
-IV *newToOldIV, *oldToNewIV, *ownedColumnsIV, *ownersIV, *vtxmapIV;
+IV *ownedColumnsIV, *ownersIV, *vtxmapIV; // *newToOldIV, *oldToNewIV
 #endif
 
 #define TUNE_MAXZEROS  1000
@@ -723,6 +724,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     InpMtx_free(*mtxA);
     IVL_free(symbfacIVL);
     Graph_free(graph);
+    //IV_free(ownersIV); // edong: In MPI code, the ownersIV is a global variable that will be used in fsolve_MPI as well. It then can only be cleaned in spooles, the main one
 }
 
 DenseMtx *fsolve_MPI(struct factorinfo *pfi, InpMtx *mtxA, DenseMtx *mtxB) {
@@ -743,16 +745,17 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, InpMtx *mtxA, DenseMtx *mtxB) {
     *   ----------------------------------------------------
     // edong: dedicated for MPI version
     */
-    /* Now submatrices that a processor owns are local to
-       that processor */
-    FrontMtx_MPI_split(pfi->frontmtx, pfi->solvemap,
-            stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
-    if (DEBUG_LVL > 1) {
-        fprintf(pfi->msgFile, "\n\n numeric factorization after split");
-        FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
-        fflush(pfi->msgFile);
+    {
+        /* Now submatrices that a processor owns are local to
+           that processor */
+        FrontMtx_MPI_split(pfi->frontmtx, pfi->solvemap,
+                stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
+        if (DEBUG_LVL > 1) {
+            fprintf(pfi->msgFile, "\n\n numeric factorization after split");
+            FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
+            fflush(pfi->msgFile);
+        }
     }
-
     
     // STEP 13, 14 in p_solver
     /*
@@ -783,13 +786,47 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, InpMtx *mtxA, DenseMtx *mtxB) {
         }
     }
 
+    // STEP 15 in p_solver
     /*
      * STEP 10: permute the solution into the original ordering
      */
-    ssolve_permuteout(mtxX, pfi->newToOldIV, pfi->msgFile);
+    {
+        ssolve_permuteout(mtxX, pfi->newToOldIV, pfi->msgFile);
+        if (DEBUG_LVL > 1) {
+            fprintf(pfi->msgFile, "\n\n solution in old ordering");
+            DenseMtx_writeForHumanEye(mtxX, pfi->msgFile);
+            fflush(pfi->msgFile);
+        }
+        // edong: Dedicated for MPI since here
+        IV_fill(vtxmapIV, 0);
+        firsttag++;
+        mtxX = DenseMtx_MPI_splitByRows(mtxX, vtxmapIV, stats, DEBUG_LVL,
+                pfi->msgFile, firsttag, MPI_COMM_WORLD);
+        /* End the timer */
+        endtime = MPI_Wtime();
+        /* Determine how long the solve operation took */
+        fprintf(stdout, "Total time for %s: %f\n", processor_name,
+                endtime - starttime);
+        /* Now gather the solution the processor 0 */
+        if (myid == 0) {
+            printf("%d\n", nrow);
+            sprintf(buffer, "x.result");
+            inputFile = fopen(buffer, "w");
+            for (jrow = 0; jrow < ncol; jrow++) {
+                fprintf(inputFile, "%1.5e\n", DenseMtx_entries(mtxX)[jrow]);
+            }
+            fclose(inputFile);
+        }
+    }
 
     /* Cleanup */
-    DenseMtx_free(mtxB);
+    {
+    /* End the MPI environment */
+    MPI_Finalize();
+    /* Free up memory */
+    IVL_free(symbfacIVL);
+    Graph_free(graph);
+    }
 
     return mtxX;
 }
@@ -1026,18 +1063,10 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
        -----------------------------------------------------------------
      * edong: re-coded into spooles_factor, inside #ifdef MPI_READY
      */
-        if (myid == 0) {
-            printf("Solving the system of equations using SpoolesMPI\n\n");
-        }
-        fprintf(stdout, "Process %d of %d on %s\n", myid + 1, nproc,
-                processor_name);
-        /* Start a timer to determine how long the solve process takes */
-        starttime = MPI_Wtime();
-
-        if (DEBUG_LVL > 100) printf("\nedong: MPI_READY\n");
-        MPI_Barrier(MPI_COMM_WORLD);  
-        mtxA_propagate(mtxA, inputformat, sigma, size, ad, au, adb, aub,
-                        icol, irow, neq, nzs3, nzs);
+    if (DEBUG_LVL > 100) printf("\nedong: MPI_READY\n");
+    MPI_Barrier(MPI_COMM_WORLD);  
+    mtxA_propagate(mtxA, inputformat, sigma, size, ad, au, adb, aub,
+                    icol, irow, neq, nzs3, nzs);
 
 #else
     {
@@ -1354,6 +1383,13 @@ void spooles_cleanup() {
         SolveMap_free(pfi.solvemap);
     ETree_free(pfi.frontETree);
     fclose(msgFile);
+    fclose(pfi.msgFile);
+#ifdef MPI_READY
+    DenseMtx_free(mtxB);
+    IV_free(ownersIV);
+    IV_free(vtxmapIV);
+    IV_free(ownedColumnsIV);
+#endif
 }
 
 
@@ -1669,6 +1705,12 @@ void spooles_cleanup_rad() {
         SolveMap_free(pfj.solvemap);
     ETree_free(pfj.frontETree);
     fclose(msgFilf);
+#ifdef MPI_READY
+    DenseMtx_free(mtxB);
+    IV_free(ownersIV);
+    IV_free(vtxmapIV);
+    IV_free(ownedColumnsIV);
+#endif
 }
 
 /** 
@@ -1694,6 +1736,13 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
     MPI_Get_processor_name(processor_name, &namelen);
+    if (myid == 0) {
+        printf("Solving the system of equations using SpoolesMPI\n\n");
+    }
+    fprintf(stdout, "Process %d of %d on %s\n", myid + 1, nproc,
+            processor_name);
+    /* Start a timer to determine how long the solve process takes */
+    starttime = MPI_Wtime();
     mtxB_propagate(b, neq);  // STEP 2 in p_solver
 #endif
 
@@ -1704,9 +1753,6 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
 
     spooles_cleanup();
 
-#ifdef MPI_READY
-    IV_free(ownersIV);
-#endif
 }
 
 #endif
