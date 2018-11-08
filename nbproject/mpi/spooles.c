@@ -52,7 +52,8 @@ int namelen;
 double cutoff, droptol = 0.0, minops, tau = 100.;
 char processor_name[MPI_MAX_PROCESSOR_NAME];
 double starttime = 0.0, endtime;
-int maxdomainsize, maxsize, maxzeros;
+int maxdomainsize, maxsize, maxzeros, nrow;
+int *rowind;
 int symmetryflag = 0;
 int firsttag;
 int stats[20];
@@ -733,20 +734,51 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, InpMtx *mtxA, DenseMtx *mtxB) {
      */
     ssolve_permuteB(mtxB, pfi->oldToNewIV, pfi->msgFile);
 
+    // STEP 12 in p_solver
+    /*---------------------------------------------------------------
+    *
+    *   ----------------------------------------------------
+    *   STEP 12: Redistribute the submatrices of the factors
+    *   ----------------------------------------------------
+    // edong: dedicated for MPI version
+    */
+    /* Now submatrices that a processor owns are local to
+       that processor */
+    FrontMtx_MPI_split(pfi->frontmtx, pfi->solvemap,
+            stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
+    if (DEBUG_LVL > 1) {
+        fprintf(pfi->msgFile, "\n\n numeric factorization after split");
+        FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
+        fflush(pfi->msgFile);
+    }
+
+    
+    // STEP 13, 14 in p_solver
     /*
      * STEP 9: solve the linear system in parallel
      */
     {
-        mtxX = DenseMtx_new();
-        DenseMtx_init(mtxX, SPOOLES_REAL, 0, 0, pfi->size, 1, 1, pfi->size);
-        DenseMtx_zero(mtxX);
-        FrontMtx_MT_solve(pfi->frontmtx, mtxX, mtxB, pfi->mtxmanager,
-                pfi->solvemap, pfi->cpus, DEBUG_LVL,
-                pfi->msgFile);
-        if (DEBUG_LVL > 1) {
-            fprintf(pfi->msgFile, "\n\n solution matrix in new ordering");
-            DenseMtx_writeForHumanEye(mtxX, pfi->msgFile);
-            fflush(pfi->msgFile);
+        // STEP 13 in p_solver
+        {
+            ownedColumnsIV = FrontMtx_ownedColumnsIV(pfi->frontmtx, myid, ownersIV,
+                    DEBUG_LVL, pfi->msgFile);
+            nmycol = IV_size(ownedColumnsIV);
+            mtxX = DenseMtx_new();
+            if (nmycol > 0) {
+                DenseMtx_init(mtxX, SPOOLES_REAL, 0, 0, nmycol, 1, 1, nmycol); // edong: changed nrhs to 1 at 6th parameter
+                DenseMtx_rowIndices(mtxX, &nrow, &rowind);
+                IVcopy(nmycol, rowind, IV_entries(ownedColumnsIV));
+            }
+        }
+        // STEP 14 in p_solver
+        /* Very similar to the serial code */
+        {
+            FrontMtx_MPI_solve(pfi->frontmtx, mtxX, mtxB, pfi->mtxmanager, pfi->solvemap, pfi->cpus,
+                    stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
+            if (DEBUG_LVL > 1) {
+                fprintf(pfi->msgFile, "\n solution in new ordering");
+                DenseMtx_writeForHumanEye(mtxX, pfi->msgFile);
+            }
         }
     }
 
@@ -1142,8 +1174,6 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
     /* solve it! */
 
 
-
-    if (DEBUG_LVL > 100) printf("edong: let's see which mode is defined\n");
 #ifdef MPI_READY
     if (DEBUG_LVL > 100) printf("edong: MPI_READY is defined: Before diving into factor_MPI.\n");
     factor_MPI(&pfi, &mtxA, size, msgFile, &symmetryflagi4);
@@ -1252,6 +1282,7 @@ void mtxB_propagate(double *b, ITG *neq) {
         int i;
         mtxB = DenseMtx_new();
         DenseMtx_init(mtxB, SPOOLES_REAL, 0, 0, size, 1, 1, size);
+        DenseMtx_rowIndices(mtxB, &nrow, &rowind); // edong: added from p_solver
         DenseMtx_zero(mtxB);
         for (i = 0; i < size; i++) {
             DenseMtx_setRealEntry(mtxB, i, 0, b[i]);

@@ -395,7 +395,7 @@ int main(int argc, char *argv[]) {
        STEP 13: Create a solution DenseMtx object
        ------------------------------------------
     // edong: This step and the next one: STEP 9 of fsolve_MT or STEP 7 of fsolve in spooles.c
-    // edong: Have defined fsolve_MPI to replace fsolve_MT or fsolve which is invoked from spooles_solve or spooles_solve_rad (both have been updated)Have defined fsolve_MPI to replace fsolve_MT or fsolve which is invoked from spooles_solve or spooles_solve_rad (both have been updated)
+    // edong: Have defined fsolve_MPI to replace fsolve_MT or fsolve which is invoked from spooles_solve or spooles_solve_rad (both have been updated)
      */
     ownedColumnsIV = FrontMtx_ownedColumnsIV(frontmtx, myid, ownersIV,
             msglvl, msgFile);
