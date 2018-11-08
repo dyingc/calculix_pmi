@@ -44,6 +44,8 @@
 int num_cpus = -1;
 #endif
 DenseMtx *mtxB;
+int *rowind;
+int nrow;
 
 #ifdef MPI_READY
 int root = 0;
@@ -52,8 +54,7 @@ int namelen;
 double cutoff, droptol = 0.0, minops, tau = 100.;
 char processor_name[MPI_MAX_PROCESSOR_NAME];
 double starttime = 0.0, endtime;
-int maxdomainsize, maxsize, maxzeros, nrow;
-int *rowind;
+int maxdomainsize, maxsize, maxzeros;
 int symmetryflag = 0;
 int firsttag;
 int stats[20];
