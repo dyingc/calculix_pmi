@@ -1069,144 +1069,15 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
         
         // Populate mtxA matrix
 #ifdef MPI_READY
-     
-    /*----------------------------------------------------------------*/
-    /*
-       -----------------------------------------------------------------
-       Find out the identity of this process and the number of processes
-       -----------------------------------------------------------------
-     * edong: re-coded into spooles_factor, inside #ifdef MPI_READY
-     */
-    if (DEBUG_LVL > 100) printf("\nedong: MPI_READY\n");
-    MPI_Barrier(MPI_COMM_WORLD);
-    if (DEBUG_LVL > 100)    printf("\n\tedong entering mtxA_propagate\n");
-    mtxA_propagate(mtxA, inputformat, sigma, size, ad, au, adb, aub,
+        if (DEBUG_LVL > 100) printf("\nedong: MPI_READY\n");
+        MPI_Barrier(MPI_COMM_WORLD);
+#else
+        if (DEBUG_LVL > 100) printf("\nedong: MPI_NOT_READY\n");
+#endif        
+        if (DEBUG_LVL > 100)    printf("\n\tedong entering mtxA_propagate\n");
+        mtxA_propagate(mtxA, inputformat, sigma, size, ad, au, adb, aub,
                     icol, irow, neq, nzs3, nzs);
 
-#else
-    {
-        if (DEBUG_LVL > 100) printf("\nedong: MPI_NOT_READY\n");
-        
-        {
-        if (*inputformat == 0) {
-            ipoint = 0;
-
-            if (*sigma == 0.) {
-                for (col = 0; col < size; col++) {
-                    //			printf("row=%d,col=%d,value=%e\n",col,col,ad[col]);
-                    InpMtx_inputRealEntry(mtxA, col, col, ad[col]);
-
-                    printf("\t\tedong, sigma = %lf, input diagonal, col = %d, value = %lf\n", *sigma, col, ad[col]);
-                    for (ipo = ipoint; ipo < ipoint + icol[col]; ipo++) {
-                        int row = irow[ipo] - 1;
-                        //			printf("row=%d,col=%d,value=%e\n",col,row,au[ipo]);
-
-                        printf("\t\t\tedong, sigma = %lf, input cell, row = %d, col = %d, value = %lf\n", *sigma, row, col, au[ipo]);
-                        InpMtx_inputRealEntry(mtxA, col, row,
-                                au[ipo]);
-                    }
-                    ipoint = ipoint + icol[col];
-                }
-            } else {
-                for (col = 0; col < size; col++) {
-
-                    printf("\t\tedong, sigma = %lf, input diagonal, col = %d, value = %lf\n", *sigma, col, ad[col]-*sigma * adb[col]);
-                    InpMtx_inputRealEntry(mtxA, col, col, ad[col]-*sigma * adb[col]);
-                    for (ipo = ipoint; ipo < ipoint + icol[col]; ipo++) {
-                        int row = irow[ipo] - 1;
-                        InpMtx_inputRealEntry(mtxA, col, row,
-                                au[ipo]-*sigma * aub[ipo]);
-
-                        printf("\t\t\tedong, sigma = %lf, input cell, row = %d, col = %d, value = %lf\n", *sigma, row, col, au[ipo]-*sigma * aub[ipo]);
-                    }
-                    ipoint = ipoint + icol[col];
-                }
-            }
-        } else if (*inputformat == 1) {
-            ipoint = 0;
-
-            if (*sigma == 0.) {
-                for (col = 0; col < size; col++) {
-                    //			printf("row=%d,col=%d,value=%e\n",col,col,ad[col]);
-                    InpMtx_inputRealEntry(mtxA, col, col, ad[col]);
-
-                    printf("\t\tedong, sigma = %lf, input diagonal, col = %d, value = %lf\n", *sigma, col, ad[col]);
-                    for (ipo = ipoint; ipo < ipoint + icol[col]; ipo++) {
-                        int row = irow[ipo] - 1;
-                        //			printf("row=%d,col=%d,value=%e\n",row,col,au[ipo]);
-                        InpMtx_inputRealEntry(mtxA, row, col,
-                                au[ipo]);
-
-                        printf("\t\t\tedong, sigma = %lf, input cell, row = %d, col = %d, value = %lf\n", *sigma, row, col, au[ipo]);
-                        //			printf("row=%d,col=%d,value=%e\n",col,row,au[ipo+*nzs]);
-                        InpMtx_inputRealEntry(mtxA, col, row,
-                                au[ipo + (int) *nzs3]);
-
-                        printf("\t\t\tedong, sigma = %lf, input cell, row = %d, col = %d, value = %lf\n", *sigma, col, row, au[ipo + (int) *nzs3]);
-                    }
-                    ipoint = ipoint + icol[col];
-                }
-            } else {
-                for (col = 0; col < size; col++) {
-                    InpMtx_inputRealEntry(mtxA, col, col, ad[col]-*sigma * adb[col]);
-
-                    printf("\t\tedong, sigma = %lf, input diagonal, col = %d, value = %lf\n", *sigma, col, ad[col]-*sigma * adb[col]);
-                    for (ipo = ipoint; ipo < ipoint + icol[col]; ipo++) {
-                        int row = irow[ipo] - 1;
-                        InpMtx_inputRealEntry(mtxA, row, col,
-                                au[ipo]-*sigma * aub[ipo]);
-
-                        printf("\t\t\tedong, sigma = %lf, input cell, row = %d, col = %d, value = %lf\n", *sigma, row, col, au[ipo]-*sigma * aub[ipo]);
-                        InpMtx_inputRealEntry(mtxA, col, row,
-                                au[ipo + (int) *nzs3]-*sigma * aub[ipo + (int) *nzs3]);
-                    }
-                    ipoint = ipoint + icol[col];
-                }
-            }
-        } else if (*inputformat == 2) {
-            for (i = 0; i<*neq; i++) {
-                for (j = 0; j<*neq; j++) {
-                    if (fabs(ad[i * (int) *nzs + j]) > 1.e-20) {
-                        InpMtx_inputRealEntry(mtxA, j, i,
-                                ad[i * (int) *nzs + j]);
-
-                        printf("\t\tedong, for dense matrix, row = %d, col = %d, value = %lf\n", j, i, ad[i * (int) *nzs + j]);
-                    }
-                }
-            }
-        } else if (*inputformat == 3) {
-            ipoint = 0;
-
-            if (*sigma == 0.) {
-                for (col = 0; col < size; col++) {
-                    InpMtx_inputRealEntry(mtxA, col, col, ad[col]);
-                    for (ipo = ipoint; ipo < ipoint + icol[col]; ipo++) {
-                        int row = irow[ipo] - 1;
-                        InpMtx_inputRealEntry(mtxA, row, col,
-                                au[ipo]);
-
-                        printf("\t\tedong, inputformat = %d, sigma = %lf, row = %d, col = %d, value = %lf\n", *inputformat, *sigma, row, col, au[ipo]);
-                    }
-                    ipoint = ipoint + icol[col];
-                }
-            } else {
-                for (col = 0; col < size; col++) {
-                    InpMtx_inputRealEntry(mtxA, col, col, ad[col]-*sigma * adb[col]);
-                    for (ipo = ipoint; ipo < ipoint + icol[col]; ipo++) {
-                        int row = irow[ipo] - 1;
-                        InpMtx_inputRealEntry(mtxA, row, col,
-                                au[ipo]-*sigma * aub[ipo]);
-
-                        printf("\t\tedong, inputformat = %d, sigma = %lf, row = %d, col = %d, value = %lf\n", *inputformat, *sigma, row, col, au[ipo]-*sigma * aub[ipo]);
-                    }
-                    ipoint = ipoint + icol[col];
-                }
-            }
-        }
-        }
-    }
-#endif        
-        
         InpMtx_changeStorageMode(mtxA, INPMTX_BY_VECTORS);
 
         if (DEBUG_LVL > 1) {
