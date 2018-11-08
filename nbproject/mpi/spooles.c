@@ -699,17 +699,23 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         }
     }
 
+    // STEP 11 in p_solver
     /*
      * STEP 7: get the solve map object for the parallel solve
      */
     {
-        pfi->solvemap = SolveMap_new();
+        pfi->solvemap = SolveMap_new(); 
         SolveMap_ddMap(pfi->solvemap, *symmetryflagi4,
-                FrontMtx_upperBlockIVL(pfi->frontmtx),
-                FrontMtx_lowerBlockIVL(pfi->frontmtx), pfi->nthread, ownersIV,
-                FrontMtx_frontTree(pfi->frontmtx), RNDSEED, DEBUG_LVL,
-                pfi->msgFile);
+            FrontMtx_upperBlockIVL(pfi->frontmtx),
+            FrontMtx_lowerBlockIVL(pfi->frontmtx),
+            nproc, ownersIV, FrontMtx_frontTree(pfi->frontmtx),
+            RNDSEED, DEBUG_LVL, pfi->msgFile);
+        if (DEBUG_LVL > 1) {
+            SolveMap_writeForHumanEye(pfi->solvemap, pfi->msgFile);
+            fflush(pfi->msgFile);
+        }
     }
+
 
     /* cleanup: */
     InpMtx_free(*mtxA);
