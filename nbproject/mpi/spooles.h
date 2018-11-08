@@ -38,7 +38,7 @@
 #endif
 
 /* increase this for debugging */
-#define DEBUG_LVL	0
+#define DEBUG_LVL	200
 
 struct factorinfo 
 {

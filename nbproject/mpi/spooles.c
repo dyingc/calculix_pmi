@@ -1614,6 +1614,7 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
         double *b, ITG *icol, ITG *irow, ITG *neq, ITG *nzs,
         ITG *symmetryflag, ITG *inputformat, ITG *nzs3) {
 
+    printf("edong: DEBUG_LVL=%d\n", DEBUG_LVL);
     if (DEBUG_LVL > 100) printf("edong enters spooles\n");
 
     if (*neq == 0) return;
