@@ -1619,7 +1619,7 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
     if (*neq == 0) return;
 
 #ifdef MPI_READY
-    MPI_Init(NULL, NULL);
+//    MPI_Init(NULL, NULL); // it's already initialized in ccx_2.14.c
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
     MPI_Get_processor_name(processor_name, &namelen);
