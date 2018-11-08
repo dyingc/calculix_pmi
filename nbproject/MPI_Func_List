@@ -17,7 +17,7 @@ spooles
             fsolve_MPI
                     ssolve_permuteB                     :   STEP 4 (Last statement)
                     LOCAL                               :   STEP 12, 13, 14
-                    ssolve_permuteout
-
+                    ssolve_permuteout                   :   STEP 15 (first statement)
+                    LOCAL                               :   STEP 15 (remaining statements)
 
     spooles_cleanup
