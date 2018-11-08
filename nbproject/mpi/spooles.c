@@ -40,6 +40,9 @@
 #include "CalculiX.h"
 #include "spooles.h"
 
+FILE *msgFilf;
+struct factorinfo pfj;
+
 #if USE_MT
 int num_cpus = -1;
 #endif
@@ -188,6 +191,7 @@ static void ssolve_permuteA(IV ** oldToNewIV, IV ** newToOldIV,
         InpMtx * mtxA, FILE * msgFile, int *symmetryflagi4) {
     int *oldToNew;
 
+    if (DEBUG_LVL > 100)    printf("\nedong: inside ssolve_permuteA\n");
     *oldToNewIV = ETree_oldToNewVtxPerm(frontETree);
     oldToNew = IV_entries(*oldToNewIV);
     *newToOldIV = ETree_newToOldVtxPerm(frontETree);
@@ -197,7 +201,9 @@ static void ssolve_permuteA(IV ** oldToNewIV, IV ** newToOldIV,
     InpMtx_changeCoordType(mtxA, INPMTX_BY_CHEVRONS);
     InpMtx_changeStorageMode(mtxA, INPMTX_BY_VECTORS);
 #ifndef MPI_READY
+    if (DEBUG_LVL > 100)    printf("\n\tedong: inside ssolve_permuteA: here\n");
     *symbfacIVL = SymbFac_initFromInpMtx(frontETree, mtxA);
+    if (DEBUG_LVL > 100)    printf("\n\tedong: inside ssolve_permuteA: here\n");
 #endif
 
     if (DEBUG_LVL > 1) {
@@ -210,7 +216,12 @@ static void ssolve_permuteA(IV ** oldToNewIV, IV ** newToOldIV,
         fprintf(msgFile, "\n\n input matrix after permutation");
         InpMtx_writeForHumanEye(mtxA, msgFile);
         fprintf(msgFile, "\n\n symbolic factorization");
+    if (DEBUG_LVL > 100)    printf("\n\tedong: inside ssolve_permuteA: here: about to 1\n");
+    if (DEBUG_LVL > 100)    fflush(msgFile);
+#ifndef MPI_READY
         IVL_writeForHumanEye(*symbfacIVL, msgFile);
+#endif
+    if (DEBUG_LVL > 100)    printf("\n\tedong: inside ssolve_permuteA: here: about to 2\n");
         fflush(msgFile);
     }
 }
@@ -558,10 +569,12 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
          */
         ssolve_permuteA(&pfi->oldToNewIV, &pfi->newToOldIV, &symbfacIVL, pfi->frontETree,
                 *mtxA, pfi->msgFile, symmetryflagi4);
+        if (DEBUG_LVL > 100)    printf("\t\tedong: out of ssolve_permuteA");
         /*
          * STEP 8: permute the right hand side into the new ordering
          */
         ssolve_permuteB(mtxB, pfi->oldToNewIV, pfi->msgFile);
+        if (DEBUG_LVL > 100)    printf("\t\tedong: out of ssolve_permuteB");
     }
     
     // STEP 5 in p_solver
@@ -641,6 +654,8 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: STEP 7 in p_solver\n");
         symbfacIVL = SymbFac_MPI_initFromInpMtx(&pfi->frontETree, ownersIV, *mtxA,
             stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
+        if (DEBUG_LVL > 100)    printf("\t\tedong: after SymbFac_MPI_initFromInpMtx\n");
+        if (DEBUG_LVL > 100)    printf("\t\tedong: nfront = %d\n", pfi->frontETree->nfront);
         firsttag += pfi->frontETree->nfront;
     }
     
@@ -1193,20 +1208,22 @@ void mtxB_propagate(double *b, ITG *neq) {
      */
     int size = *neq;
     DenseMtx *mtxX;
-    if (DEBUG_LVL > 100)    printf("\nedong in mtxB_propagate\n");
+    if (DEBUG_LVL > 100)    printf("\n\nedong in mtxB_propagate\n");
     // edong: STEP 2 from p_solver to propagate mtxB
     {
         int i;
         mtxB = DenseMtx_new();
         DenseMtx_init(mtxB, SPOOLES_REAL, 0, 0, size, 1, 1, size);
         DenseMtx_rowIndices(mtxB, &nrow, &rowind); // edong: added from p_solver
+    	if (DEBUG_LVL > 100)  	printf("\n\tedong: after DenseMtx_rowIndices: size = %d, nrow = %d, rowind = %d\n", size, nrow, *rowind);
         DenseMtx_zero(mtxB);
         for (i = 0; i < size; i++) {
             DenseMtx_setRealEntry(mtxB, i, 0, b[i]);
+    	    if (DEBUG_LVL > 500)  	printf("b[%d] = %d, ", i, b[i]);
         }
         if (DEBUG_LVL > 1) {
-            fprintf(msgFile, "\n\n rhs matrix in original ordering");
-            DenseMtx_writeForHumanEye(mtxB, msgFile);
+            //fprintf(msgFile, "\n\n rhs matrix in original ordering");
+            //DenseMtx_writeForHumanEye(mtxB, msgFile);
             fflush(msgFile);
         }
     }
@@ -1279,14 +1296,6 @@ void spooles_cleanup() {
 #endif
 }
 
-
-/** 
- * factor a system of the form (au - sigma * aub)
- * 
- */
-
-FILE *msgFilf;
-struct factorinfo pfj;
 
 // edong TODO: this one has NOT been MPI ready!!!
 void spooles_factor_rad(double *ad, double *au, double *adb, double *aub,
