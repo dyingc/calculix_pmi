@@ -216,6 +216,7 @@ static void ssolve_permuteA(IV ** oldToNewIV, IV ** newToOldIV,
         fprintf(msgFile, "\n\n input matrix after permutation");
         InpMtx_writeForHumanEye(mtxA, msgFile);
         fprintf(msgFile, "\n\n symbolic factorization");
+        fprintf(msgFile, "\n\n edong: here the symbfacIVL will not be output as it's not yet calculated.");
     if (DEBUG_LVL > 100)    printf("\n\tedong: inside ssolve_permuteA: here: about to 1\n");
     if (DEBUG_LVL > 100)    fflush(msgFile);
 #ifndef MPI_READY
@@ -657,6 +658,10 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         if (DEBUG_LVL > 100)    printf("\t\tedong: after SymbFac_MPI_initFromInpMtx\n");
         if (DEBUG_LVL > 100)    printf("\t\tedong: nfront = %d\n", pfi->frontETree->nfront);
         firsttag += pfi->frontETree->nfront;
+        fprintf(msgFile, "\n\n symbolic factorization");
+        fprintf(msgFile, "\n\n edong: here the symbfacIVL will be output after it's been calculated using the MPI version.");
+        IVL_writeForHumanEye(*symbfacIVL, msgFile);
+        fflush(msgFile);
     }
     
     // STEP 8 in p_solver
