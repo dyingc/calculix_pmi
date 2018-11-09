@@ -702,17 +702,18 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         ChvManager_free(chvmanager);
         firsttag += 3 * pfi->frontETree->nfront + 2;
         if (DEBUG_LVL > 1) {
-            fprintf(pfi->msgFile, "\n\n edong: factor matrix");
+            fprintf(pfi->msgFile, "\n\n edong: STEP 9: factor matrix");
             FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
+            fprintf(pfi->msgFile, "\n\n edong: FIN STEP 9");
             fflush(pfi->msgFile);
         }
         if (rootchv != NULL) {
-            fprintf(pfi->msgFile, "\n\n proc %d: matrix found to be singular. Exit factor_MPI\n", myid);
+            fprintf(pfi->msgFile, "\n\n proc %d: errdong: matrix found to be singular. Exit factor_MPI\n", myid);
             MPI_Finalize();
             exit(-1);
         }
         if (error >= 0) {
-            fprintf(pfi->msgFile, "\n\n proc %d: fatal error at front %d, Exit factor_MPI\n", myid, error);
+            fprintf(pfi->msgFile, "\n\n proc %d: errdong: fatal error at front %d, Exit factor_MPI\n", myid, error);
             MPI_Finalize();
             exit(-1);
         }
@@ -725,6 +726,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     {
         if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: STEP 10 in p_solver\n");
         //ssolve_postfactor(pfi->frontmtx, pfi->msgFile); // edong: we use our similar but MPI version here
+        fprintf(pfi->msgFile, "\n\n edong: STEP 10: before FrontMtx_MPI_postProcess");
         FrontMtx_MPI_postProcess(pfi->frontmtx, ownersIV, stats, DEBUG_LVL,
         pfi->msgFile, firsttag, MPI_COMM_WORLD);
         firsttag += 5 * nproc;
