@@ -660,7 +660,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         firsttag += pfi->frontETree->nfront;
         fprintf(msgFile, "\n\n symbolic factorization");
         fprintf(msgFile, "\n\n edong: here the symbfacIVL will be output after it's been calculated using the MPI version.");
-        IVL_writeForHumanEye(*symbfacIVL, msgFile);
+        IVL_writeForHumanEye(symbfacIVL, msgFile);
         fflush(msgFile);
     }
     
