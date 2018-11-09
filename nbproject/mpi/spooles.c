@@ -675,9 +675,9 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         pfi->frontmtx = FrontMtx_new();
         pfi->mtxmanager = SubMtxManager_new();
         SubMtxManager_init(pfi->mtxmanager, LOCK_IN_PROCESS, 0);
-        FrontMtx_init(pfi->frontmtx, pfi->frontETree, symbfacIVL, SPOOLES_REAL,
-                *symmetryflagi4, FRONTMTX_DENSE_FRONTS,
-                SPOOLES_PIVOTING, LOCK_IN_PROCESS, 0, NULL,
+        FrontMtx_init(pfi->frontmtx, pfi->frontETree, symbfacIVL, SPOOLES_REAL, 
+                *symmetryflagi4, FRONTMTX_DENSE_FRONTS, 
+                SPOOLES_PIVOTING, LOCK_IN_PROCESS, myid, ownersIV,
                 pfi->mtxmanager, DEBUG_LVL, pfi->msgFile);
     }
 
