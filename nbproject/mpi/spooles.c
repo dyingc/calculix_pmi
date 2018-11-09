@@ -653,7 +653,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     // STEP 7 in p_solver
     {
         if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: STEP 7 in p_solver\n");
-        symbfacIVL = SymbFac_MPI_initFromInpMtx(&pfi->frontETree, ownersIV, *mtxA,
+        symbfacIVL = SymbFac_MPI_initFromInpMtx(pfi->frontETree, ownersIV, *mtxA,
             stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
         if (DEBUG_LVL > 100)    printf("\t\tedong: after SymbFac_MPI_initFromInpMtx\n");
         if (DEBUG_LVL > 100)    printf("\t\tedong: nfront = %d\n", pfi->frontETree->nfront);
@@ -702,7 +702,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         ChvManager_free(chvmanager);
         firsttag += 3 * pfi->frontETree->nfront + 2;
         if (DEBUG_LVL > 1) {
-            fprintf(pfi->msgFile, "\n\n factor matrix");
+            fprintf(pfi->msgFile, "\n\n edong: factor matrix");
             FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
             fflush(pfi->msgFile);
         }
@@ -729,7 +729,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         pfi->msgFile, firsttag, MPI_COMM_WORLD);
         firsttag += 5 * nproc;
         if (DEBUG_LVL > 1) {
-            fprintf(pfi->msgFile, "\n\n numeric factorization after post-processing");
+            fprintf(pfi->msgFile, "\n\n edong: numeric factorization after post-processing");
             FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
             fflush(pfi->msgFile);
         }
