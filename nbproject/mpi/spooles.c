@@ -40,7 +40,7 @@
 #include "CalculiX.h"
 #include "spooles.h"
 
-FILE *msgFilf;
+FILE *msgFilf = NULL;
 struct factorinfo pfj;
 
 #if USE_MT
@@ -1036,10 +1036,11 @@ void spooles_factor(double *ad, double *au, double *adb, double *aub,
 
     /*	if(*neq==0) return;*/
 
-    if ((msgFile = fopen("spooles.out", "a")) == NULL) {
-        fprintf(stderr, "\n fatal error in spooles.c"
-                "\n unable to open file spooles.out\n");
-    }
+    if (msgFile == NULL)
+        if ((msgFile = fopen("spooles.out", "a")) == NULL) {
+            fprintf(stderr, "\n fatal error in spooles.c"
+                    "\n unable to open file spooles.out\n");
+        }
 
     /*
      * Create the InpMtx object from the CalculiX matrix
@@ -1215,15 +1216,14 @@ void mtxB_propagate(double *b, ITG *neq) {
         mtxB = DenseMtx_new();
         DenseMtx_init(mtxB, SPOOLES_REAL, 0, 0, size, 1, 1, size);
         DenseMtx_rowIndices(mtxB, &nrow, &rowind); // edong: added from p_solver
-    	if (DEBUG_LVL > 100)  	printf("\n\tedong: after DenseMtx_rowIndices: size = %d, nrow = %d, rowind = %d\n", size, nrow, *rowind);
         DenseMtx_zero(mtxB);
         for (i = 0; i < size; i++) {
             DenseMtx_setRealEntry(mtxB, i, 0, b[i]);
     	    if (DEBUG_LVL > 500)  	printf("b[%d] = %d, ", i, b[i]);
         }
         if (DEBUG_LVL > 1) {
-            //fprintf(msgFile, "\n\n rhs matrix in original ordering");
-            //DenseMtx_writeForHumanEye(mtxB, msgFile);
+            fprintf(msgFile, "\n\n rhs matrix in original ordering");
+            DenseMtx_writeForHumanEye(mtxB, msgFile);
             fflush(msgFile);
         }
     }
@@ -1627,6 +1627,12 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
     if (DEBUG_LVL > 100) printf("edong enters spooles\n");
 
     if (*neq == 0) return;
+
+    if (msgFile == NULL)
+        if ((msgFile = fopen("spooles.out", "a")) == NULL) {
+            fprintf(stderr, "\n fatal error in spooles.c"
+                    "\n unable to open file spooles.out\n");
+        }
 
 #ifdef MPI_READY
 //    MPI_Init(NULL, NULL); // it's already initialized in ccx_2.14.c
