@@ -168,6 +168,7 @@ InpMtx_changeCoordType(inpmtx, oldtype) ;
    ------------------------
 */
 IVfree(counts) ;
+IVfree(counts_recv) ;
 IVfree(buffer) ;
 InpMtx_free(adjmtx) ;
 
@@ -194,7 +195,7 @@ Pencil_MPI_fullAdjacency (
 InpMtx   *adjmtx, *inpmtxA, *inpmtxB ;
 int       ierr, iproc, maxnent, myid, nent, nentA, nentB,
           nproc, oldtypeA, oldtypeB, totalnent ;
-int       *buffer, *counts, *ivec1, *ivec2, *tempbuffer ;
+int       *buffer, *counts, *counts_recv, *ivec1, *ivec2, *tempbuffer ;
 IVL       *adjIVL ;
 /*
    ------------------------------------------------------
@@ -413,6 +414,7 @@ InpMtx_changeCoordType(inpmtxB, oldtypeB) ;
    ------------------------
 */
 IVfree(counts) ;
+IVfree(counts_recv) ;
 if ( tempbuffer != NULL ) {
    IVfree(tempbuffer) ;
 }

@@ -232,6 +232,7 @@ for ( offset = 1, tag = firsttag ; offset < nproc ; offset++, tag++ ) {
    ------------------------
 */
 IVfree(counts) ;
+IVfree(counts_recv) ;
 if ( outbuffer != NULL ) {
    IVfree(outbuffer) ;
 }
