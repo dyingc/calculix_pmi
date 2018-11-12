@@ -364,7 +364,8 @@ int main(int argc, char *argv[]) {
     // edong: In STEP 7 of factor_MT in spooles.c
     // edong: Somehow I can't find related steps in the serial version factor
      */
-    solvemap = SolveMap_new(); SolveMap_ddMap(solvemap, frontmtx->symmetryflag,
+    solvemap = SolveMap_new(); 
+    SolveMap_ddMap(solvemap, frontmtx->symmetryflag,
             FrontMtx_upperBlockIVL(frontmtx),
             FrontMtx_lowerBlockIVL(frontmtx),
             nproc, ownersIV, FrontMtx_frontTree(frontmtx),

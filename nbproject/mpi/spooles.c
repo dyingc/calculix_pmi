@@ -753,12 +753,18 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
          * STEP 7: get the solve map object for the parallel solve
          */
         if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: BEGIN STEP 11 in p_solver\n");
-        pfi->solvemap = SolveMap_new(); 
-        SolveMap_ddMap(pfi->solvemap, *symmetryflagi4,
+        pfi->solvemap = SolveMap_new();
+        if (DEBUG_LVL > 100)    printf("\t\tedong: pfi->frontmtx->symmetryflag = %d, *symmetryflagi4 = %d\n", pfi->frontmtx->symmetryflag, *symmetryflagi4);
+        SolveMap_ddMap(pfi->solvemap, pfi->frontmtx->symmetryflag,
             FrontMtx_upperBlockIVL(pfi->frontmtx),
             FrontMtx_lowerBlockIVL(pfi->frontmtx),
             nproc, ownersIV, FrontMtx_frontTree(pfi->frontmtx),
             RNDSEED, DEBUG_LVL, pfi->msgFile);
+/*        SolveMap_ddMap(pfi->solvemap, *symmetryflagi4,
+            FrontMtx_upperBlockIVL(pfi->frontmtx),
+            FrontMtx_lowerBlockIVL(pfi->frontmtx),
+            nproc, ownersIV, FrontMtx_frontTree(pfi->frontmtx),
+            RNDSEED, DEBUG_LVL, pfi->msgFile);*/
         if (DEBUG_LVL > 1) {
             fprintf(pfi->msgFile, "\n\n edong: BEGIN SolveMap_writeForHumanEye pfi->solvemap");
             SolveMap_writeForHumanEye(pfi->solvemap, pfi->msgFile);
@@ -843,7 +849,8 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
             if (DEBUG_LVL > 100)    printf("\tedong:fsolve_MPI: STEP 14 in p_solver\n");
             if (DEBUG_LVL > 100) {
                 fprintf(pfi->msgFile, "\n\n edong: In STEP 14 of p_solver, BEFORE FrontMtx_MPI_solve: \n\n\t\tcpus = ");
-                for (int ii = 0; ii < 20; ii++)
+                int ii;
+                for (ii = 0; ii < 20; ii++)
                     fprintf(pfi->msgFile, "%lf ", cpus[ii]);
             }
             FrontMtx_MPI_solve(pfi->frontmtx, mtxX, mtxB, pfi->mtxmanager, pfi->solvemap, cpus,
