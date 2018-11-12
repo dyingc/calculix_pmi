@@ -1671,11 +1671,10 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
 
     if (*neq == 0) return;
 
-    if (msgFile == NULL)
-        if ((msgFile = fopen("spooles.out", "a")) == NULL) {
-            fprintf(stderr, "\n fatal error in spooles.c"
-                    "\n unable to open file spooles.out\n");
-        }
+    if ((msgFile = fopen("spooles.out", "a")) == NULL) {
+        fprintf(stderr, "\n fatal error in spooles.c"
+                "\n unable to open file spooles.out\n");
+    }
 
 #ifdef MPI_READY
 //    MPI_Init(NULL, NULL); // it's already initialized in ccx_2.14.c
