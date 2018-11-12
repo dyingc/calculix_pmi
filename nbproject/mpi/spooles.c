@@ -825,10 +825,13 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
                     DEBUG_LVL, pfi->msgFile);
             nmycol = IV_size(ownedColumnsIV);
             mtxX = DenseMtx_new();
-            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: In STEP 13 of p_solver: pfi->size = %d, nmycol = %d\n", pfi->size, nmycol);
+            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: In STEP 13 of p_solver, BEFORE DenseMtx_rowIndices: "
+                    "       pfi->size = %d, nmycol = %d, nrow = %d, rowind = %d\n", pfi->size, nmycol, nrow, rowind);
             if (nmycol > 0) {
                 DenseMtx_init(mtxX, SPOOLES_REAL, 0, 0, nmycol, 1, 1, nmycol); // edong: changed nrhs to 1 at 6th parameter
                 DenseMtx_rowIndices(mtxX, &nrow, &rowind);
+                if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: In STEP 13 of p_solver, AFTER DenseMtx_rowIndices: "
+                    "       pfi->size = %d, nmycol = %d, nrow = %d, rowind = %d\n", pfi->size, nmycol, nrow, rowind);
                 IVcopy(nmycol, rowind, IV_entries(ownedColumnsIV));
             }
         }
@@ -839,8 +842,9 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
             FrontMtx_MPI_solve(pfi->frontmtx, mtxX, mtxB, pfi->mtxmanager, pfi->solvemap, pfi->cpus,
                     stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
             if (DEBUG_LVL > 1) {
-                fprintf(pfi->msgFile, "\n solution in new ordering");
+                fprintf(pfi->msgFile, "\n edong: solution in new ordering, BEFORE output");
                 DenseMtx_writeForHumanEye(mtxX, pfi->msgFile);
+                fprintf(pfi->msgFile, "\n edong: solution in new ordering, AFTER output");
             }
         }
     }
