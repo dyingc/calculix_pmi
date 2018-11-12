@@ -216,7 +216,7 @@ static void ssolve_permuteA(IV ** oldToNewIV, IV ** newToOldIV,
         fprintf(msgFile, "\n\n input matrix after permutation");
         InpMtx_writeForHumanEye(mtxA, msgFile);
         fprintf(msgFile, "\n\n symbolic factorization");
-        fprintf(msgFile, "\n\n edong: here the symbfacIVL will not be output as it's not yet calculated.");
+        fprintf(msgFile, "\n\n here the symbfacIVL will not be output as it's not yet calculated.");
     if (DEBUG_LVL > 100)    printf("\n\tedong: inside ssolve_permuteA: here: about to 1\n");
     if (DEBUG_LVL > 100)    fflush(msgFile);
 #ifndef MPI_READY
@@ -228,7 +228,9 @@ static void ssolve_permuteA(IV ** oldToNewIV, IV ** newToOldIV,
 }
 
 static void ssolve_postfactor(FrontMtx *frontmtx, FILE *msgFile) {
+    if (DEBUG_LVL > 100) fprintf(msgFile, "\n\n edong: BEFORE FrontMtx_postProcess in ssolve_postfactor");
     FrontMtx_postProcess(frontmtx, DEBUG_LVL, msgFile);
+    if (DEBUG_LVL > 100) fprintf(msgFile, "\n\n edong: AFTER FrontMtx_postProcess in ssolve_postfactor");
     if (DEBUG_LVL > 1) {
         fprintf(msgFile, "\n\n factor matrix after post-processing");
         FrontMtx_writeForHumanEye(frontmtx, msgFile);
@@ -237,7 +239,9 @@ static void ssolve_postfactor(FrontMtx *frontmtx, FILE *msgFile) {
 }
 
 static void ssolve_permuteB(DenseMtx *mtxB, IV *oldToNewIV, FILE* msgFile) {
+    if (DEBUG_LVL > 100) fprintf(msgFile, "\n\n edong: BEFORE DenseMtx_permuteRows in ssolve_permuteB");
     DenseMtx_permuteRows(mtxB, oldToNewIV);
+    if (DEBUG_LVL > 100) fprintf(msgFile, "\n\n edong: BEFORE DenseMtx_permuteRows in ssolve_permuteB");
     if (DEBUG_LVL > 1) {
         fprintf(msgFile,
                 "\n\n right hand side matrix in new ordering");
@@ -659,7 +663,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         if (DEBUG_LVL > 100)    printf("\t\tedong: nfront = %d\n", pfi->frontETree->nfront);
         firsttag += pfi->frontETree->nfront;
         fprintf(msgFile, "\n\n symbolic factorization");
-        fprintf(msgFile, "\n\n edong: here the symbfacIVL will be output after it's been calculated using the MPI version.");
+        fprintf(msgFile, "\n\n here the symbfacIVL will be output after it's been calculated using the MPI version.");
         IVL_writeForHumanEye(symbfacIVL, msgFile);
         fflush(msgFile);
     }
@@ -702,9 +706,9 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         ChvManager_free(chvmanager);
         firsttag += 3 * pfi->frontETree->nfront + 2;
         if (DEBUG_LVL > 1) {
-            fprintf(pfi->msgFile, "\n\n edong: STEP 9: factor matrix");
+            fprintf(pfi->msgFile, "\n\n STEP 9: factor matrix");
             FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
-            fprintf(pfi->msgFile, "\n\n edong: FIN STEP 9");
+            fprintf(pfi->msgFile, "\n\n FIN STEP 9");
             fflush(pfi->msgFile);
         }
         if (rootchv != NULL) {
@@ -726,12 +730,12 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     {
         if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: STEP 10 in p_solver\n");
         //ssolve_postfactor(pfi->frontmtx, pfi->msgFile); // edong: we use our similar but MPI version here
-        fprintf(pfi->msgFile, "\n\n edong: STEP 10: before FrontMtx_MPI_postProcess");
+        fprintf(pfi->msgFile, "\n\n STEP 10: before FrontMtx_MPI_postProcess");
         FrontMtx_MPI_postProcess(pfi->frontmtx, ownersIV, stats, DEBUG_LVL,
         pfi->msgFile, firsttag, MPI_COMM_WORLD);
         firsttag += 5 * nproc;
         if (DEBUG_LVL > 1) {
-            fprintf(pfi->msgFile, "\n\n edong: numeric factorization after post-processing");
+            fprintf(pfi->msgFile, "\n\n numeric factorization after post-processing");
             FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
             fflush(pfi->msgFile);
         }
@@ -742,17 +746,24 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
      * STEP 7: get the solve map object for the parallel solve
      */
     {
-        if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: STEP 11 in p_solver\n");
+        if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: BEGIN STEP 11 in p_solver\n");
         pfi->solvemap = SolveMap_new(); 
+        fprintf(pfi->msgFile, "\n\n edong: BEFORE SolveMap_ddMap");   // added by edong
+        fflush(pfi->msgFile);   // added by edong
         SolveMap_ddMap(pfi->solvemap, *symmetryflagi4,
             FrontMtx_upperBlockIVL(pfi->frontmtx),
             FrontMtx_lowerBlockIVL(pfi->frontmtx),
             nproc, ownersIV, FrontMtx_frontTree(pfi->frontmtx),
             RNDSEED, DEBUG_LVL, pfi->msgFile);
+        fprintf(pfi->msgFile, "\n\n edong: FIN SolveMap_ddMap");   // added by edong
         if (DEBUG_LVL > 1) {
+            fprintf(pfi->msgFile, "\n\n edong: START SolveMap_writeForHumanEye pfi->solvemap");   // added by edong
+            fflush(pfi->msgFile);   // added by edong
             SolveMap_writeForHumanEye(pfi->solvemap, pfi->msgFile);
-            fflush(pfi->msgFile);
+            fprintf(pfi->msgFile, "\n\n edong: FIN SolveMap_writeForHumanEye pfi->solvemap");
+            fflush(pfi->msgFile);   // added by edong
         }
+        if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: FIN STEP 11 in p_solver\n");
     }
 
 
@@ -771,7 +782,7 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
     /*
      * STEP 8: permute the right hand side into the new ordering
      */
-    ssolve_permuteB(mtxB, pfi->oldToNewIV, pfi->msgFile);
+    //ssolve_permuteB(mtxB, pfi->oldToNewIV, pfi->msgFile);  // this step in MPI env has been finished in factor_MPI
 
     // STEP 12 in p_solver
     /*---------------------------------------------------------------
