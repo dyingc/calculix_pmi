@@ -153,7 +153,7 @@ static void ssolve_creategraph(Graph ** graph, ETree ** frontETree,
     IVL *adjIVL;
     int nedges;
 
-#ifdef MPI
+#ifdef MPI_READY
     ssolve_creategraph_MPI(graph, frontETree, mtxA, size, msgFile);
 #else
     *graph = Graph_new();
@@ -1239,7 +1239,7 @@ void mtxB_propagate(double *b, ITG *neq) {
         DenseMtx_zero(mtxB);
         for (i = 0; i < size; i++) {
             DenseMtx_setRealEntry(mtxB, i, 0, b[i]);
-    	    if (DEBUG_LVL > 500)  	printf("b[%d] = %d, ", i, b[i]);
+    	    if (DEBUG_LVL > 500)  	printf("b[%d] = %lf, ", i, b[i]);
         }
         if (DEBUG_LVL > 1) {
             fprintf(msgFile, "\n\n rhs matrix in original ordering");
@@ -1289,9 +1289,14 @@ void spooles_solve(double *b, ITG *neq) {
     /* convert the result back to Calculix representation */
     {
         int i;
+        if (DEBUG_LVL > 100) fprintf(msgFile, "\n\nedong: START to output mtxX\n\n"); // added by edong
+        if (DEBUG_LVL > 100) printf("edong: START to output mtxX\n\n");
         for (i = 0; i < size; i++) {
             b[i] = DenseMtx_entries(mtxX)[i];
+            if (DEBUG_LVL > 100) fprintf(msgFile, "%lf", b[i]); // added by edong
         }
+        if (DEBUG_LVL > 100) fprintf(msgFile, "\n\nedong: FIN to output mtxX\n\n"); // added by edong
+        if (DEBUG_LVL > 100) fflush(msgFile); // added by edong
     }
     /* cleanup */
     DenseMtx_free(mtxX);
