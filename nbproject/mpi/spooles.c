@@ -54,6 +54,7 @@ int nrow;
 #ifdef MPI_READY
 //char buffer[20];
 //FILE *inputFile;
+double cpus[20];
 int root = 0;
 int myid, nproc;
 int namelen;
@@ -556,7 +557,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     /* Initialize pfi: */
     pfi->size = size;
     pfi->msgFile = msgFile;
-    DVfill(10, pfi->cpus, 0.0);
+    //DVfill(10, pfi->cpus, 0.0);
 
     /*
      * STEP 1 : find a low-fill ordering
@@ -701,7 +702,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         //IVfill(20, stats, 0); // edong: we can't initialize stats here as it's a global variable and has been changed in the previous steps
         rootchv = FrontMtx_MPI_factorInpMtx(pfi->frontmtx, *mtxA, MAGIC_TAU, MAGIC_DTOL,
                 chvmanager, ownersIV, 0,
-                &error, pfi->cpus, stats, DEBUG_LVL,
+                &error, cpus, stats, DEBUG_LVL,
                 pfi->msgFile, firsttag, MPI_COMM_WORLD);
         ChvManager_free(chvmanager);
         firsttag += 3 * pfi->frontETree->nfront + 2;
@@ -759,6 +760,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
             nproc, ownersIV, FrontMtx_frontTree(pfi->frontmtx),
             RNDSEED, DEBUG_LVL, pfi->msgFile);
         if (DEBUG_LVL > 1) {
+            fprintf(pfi->msgFile, "\n\n edong: BEGIN SolveMap_writeForHumanEye pfi->solvemap");
             SolveMap_writeForHumanEye(pfi->solvemap, pfi->msgFile);
             fprintf(pfi->msgFile, "\n\n edong: FIN SolveMap_writeForHumanEye pfi->solvemap");
             if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: START output pfi->msgFile in STEP 11 of p_solver"); // added by edong
@@ -826,12 +828,12 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
             nmycol = IV_size(ownedColumnsIV);
             mtxX = DenseMtx_new();
             if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: In STEP 13 of p_solver, BEFORE DenseMtx_rowIndices: "
-                    "       pfi->size = %d, nmycol = %d, nrow = %d, rowind = %d\n", pfi->size, nmycol, nrow, rowind);
+                    "       pfi->size = %d, nmycol = %d, nrow = %d, rowind = %d\n", pfi->size, nmycol, nrow, *rowind);
             if (nmycol > 0) {
                 DenseMtx_init(mtxX, SPOOLES_REAL, 0, 0, nmycol, 1, 1, nmycol); // edong: changed nrhs to 1 at 6th parameter
                 DenseMtx_rowIndices(mtxX, &nrow, &rowind);
                 if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: In STEP 13 of p_solver, AFTER DenseMtx_rowIndices: "
-                    "       pfi->size = %d, nmycol = %d, nrow = %d, rowind = %d\n", pfi->size, nmycol, nrow, rowind);
+                    "       pfi->size = %d, nmycol = %d, nrow = %d, rowind = %d\n", pfi->size, nmycol, nrow, *rowind);
                 IVcopy(nmycol, rowind, IV_entries(ownedColumnsIV));
             }
         }
@@ -839,10 +841,15 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
         /* Very similar to the serial code */
         {
             if (DEBUG_LVL > 100)    printf("\tedong:fsolve_MPI: STEP 14 in p_solver\n");
-            FrontMtx_MPI_solve(pfi->frontmtx, mtxX, mtxB, pfi->mtxmanager, pfi->solvemap, pfi->cpus,
+            if (DEBUG_LVL > 100) {
+                fprintf(pfi->msgFile, "\n\n edong: In STEP 14 of p_solver, BEFORE FrontMtx_MPI_solve: \n\n\t\tcpus = ");
+                for (int ii = 0; ii < 20; ii++)
+                    fprintf(pfi->msgFile, "%lf ", cpus[ii]);
+            }
+            FrontMtx_MPI_solve(pfi->frontmtx, mtxX, mtxB, pfi->mtxmanager, pfi->solvemap, cpus,
                     stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
             if (DEBUG_LVL > 1) {
-                fprintf(pfi->msgFile, "\n edong: solution in new ordering, BEFORE output");
+                fprintf(pfi->msgFile, "\n\n edong: solution in new ordering, BEFORE output");
                 DenseMtx_writeForHumanEye(mtxX, pfi->msgFile);
                 fprintf(pfi->msgFile, "\n edong: solution in new ordering, AFTER output");
             }
@@ -1233,7 +1240,6 @@ void mtxB_propagate(double *b, ITG *neq) {
      * a bit simpler that the AllInOne example
      */
     int size = *neq;
-    DenseMtx *mtxX;
     if (DEBUG_LVL > 100)    printf("\n\nedong in mtxB_propagate\n");
     // edong: STEP 2 from p_solver to propagate mtxB
     {
