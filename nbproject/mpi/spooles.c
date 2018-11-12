@@ -771,7 +771,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
 
     /* cleanup: */
     InpMtx_free(*mtxA);
-    IVL_free(symbfacIVL);
+    //IVL_free(symbfacIVL);
     Graph_free(graph);
     //IV_free(ownersIV); // edong: In MPI code, the ownersIV is a global variable that will be used in fsolve_MPI as well. It then can only be cleaned in spooles, the main one
 }
