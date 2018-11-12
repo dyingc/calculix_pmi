@@ -1330,14 +1330,12 @@ void spooles_cleanup() {
         SolveMap_free(pfi.solvemap);
     ETree_free(pfi.frontETree);
     fclose(msgFile);
-    fclose(pfi.msgFile);
 #ifdef MPI_READY
     DenseMtx_free(mtxB);
     IV_free(ownersIV);
     IV_free(vtxmapIV);
     IV_free(ownedColumnsIV);
     /* End the MPI environment */
-    MPI_Finalize();
 #endif
 }
 
