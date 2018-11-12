@@ -583,10 +583,10 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     }
     
     // STEP 5 in p_solver
-    /*
-     * STEP 3: Prepare distribution to multiple MPI processors
-     */
     {
+        /*
+         * STEP 3: Prepare distribution to multiple MPI processors
+         */
         // 1st part of STEP 5 in p_solver
         {
             if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: STEP 5-1 in p_solver\n");
@@ -669,10 +669,10 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     }
     
     // STEP 8 in p_solver
-    /*
-     * STEP 4: initialize the front matrix object
-     */
     {
+        /*
+         * STEP 4: initialize the front matrix object
+         */
         if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: STEP 8 in p_solver\n");
         // edong: In p_solver / factor, we NO_LOCK instead of LOCK_IN_PROCESS in 
         // edong: factor_MT. Chosen the value from factor_MT
@@ -686,10 +686,10 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     }
 
     // STEP 9 in p_solver
-    /*
-     * STEP 5: compute the numeric factorization in parallel
-     */
     {
+        /*
+         * STEP 5: compute the numeric factorization in parallel
+         */
         if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: STEP 9 in p_solver\n");
         ChvManager *chvmanager;
         int error;
@@ -724,28 +724,33 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     }
 
     // STEP 10 in p_solver
-    /*
-     * STEP 6: post-process the factorization
-     */
     {
+        /*
+         * STEP 6: post-process the factorization
+         */
         if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: STEP 10 in p_solver\n");
         //ssolve_postfactor(pfi->frontmtx, pfi->msgFile); // edong: we use our similar but MPI version here
         fprintf(pfi->msgFile, "\n\n STEP 10: before FrontMtx_MPI_postProcess");
+        if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: START Preparing post-process the factorization"); // added by edong
+        if (DEBUG_LVL > 100)    FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile); // added by edong
+        if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: FIN Preparing post-process the factorization"); // added by edong
         FrontMtx_MPI_postProcess(pfi->frontmtx, ownersIV, stats, DEBUG_LVL,
         pfi->msgFile, firsttag, MPI_COMM_WORLD);
         firsttag += 5 * nproc;
         if (DEBUG_LVL > 1) {
             fprintf(pfi->msgFile, "\n\n numeric factorization after post-processing");
+            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: START numeric factorization after post-processing"); // added by edong
             FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
+            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: FIN numeric factorization after post-processing"); // added by edong
             fflush(pfi->msgFile);
         }
     }
 
     // STEP 11 in p_solver
-    /*
-     * STEP 7: get the solve map object for the parallel solve
-     */
     {
+        /*
+         * STEP 7: get the solve map object for the parallel solve
+         */
         if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: BEGIN STEP 11 in p_solver\n");
         pfi->solvemap = SolveMap_new(); 
         SolveMap_ddMap(pfi->solvemap, *symmetryflagi4,
@@ -790,14 +795,14 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
         if (DEBUG_LVL > 100)    printf("\tedong:fsolve_MPI: STEP 12 in p_solver\n");
         /* Now submatrices that a processor owns are local to
            that processor */
-            fprintf(pfi->msgFile, "\n\n edong: START numeric factorization BEFORE split"); // added by edong
-            FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile); // added by edong
-            fprintf(pfi->msgFile, "\n\n edong: FIN numeric factorization BEFORE split"); // added by edong
-            fprintf(pfi->msgFile, "\n\n edong: BEGIN FrontMtx_MPI_split"); // added by edong
+            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: START numeric factorization BEFORE split"); // added by edong
+            if (DEBUG_LVL > 100)    FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile); // added by edong
+            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: FIN numeric factorization BEFORE split"); // added by edong
+            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: BEGIN FrontMtx_MPI_split"); // added by edong
             FrontMtx_MPI_split(pfi->frontmtx, pfi->solvemap,
                 stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
-            fprintf(pfi->msgFile, "\n\n edong: FIN FrontMtx_MPI_split"); // added by edong
-            fflush(pfi->msgFile); // added by edong
+            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: FIN FrontMtx_MPI_split"); // added by edong
+            if (DEBUG_LVL > 100)    fflush(pfi->msgFile); // added by edong
         if (DEBUG_LVL > 1) {
             fprintf(pfi->msgFile, "\n\n numeric factorization after split");
             FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
