@@ -748,20 +748,14 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     {
         if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: BEGIN STEP 11 in p_solver\n");
         pfi->solvemap = SolveMap_new(); 
-        fprintf(pfi->msgFile, "\n\n edong: BEFORE SolveMap_ddMap");   // added by edong
-        fflush(pfi->msgFile);   // added by edong
         SolveMap_ddMap(pfi->solvemap, *symmetryflagi4,
             FrontMtx_upperBlockIVL(pfi->frontmtx),
             FrontMtx_lowerBlockIVL(pfi->frontmtx),
             nproc, ownersIV, FrontMtx_frontTree(pfi->frontmtx),
             RNDSEED, DEBUG_LVL, pfi->msgFile);
-        fprintf(pfi->msgFile, "\n\n edong: FIN SolveMap_ddMap");   // added by edong
         if (DEBUG_LVL > 1) {
-            fprintf(pfi->msgFile, "\n\n edong: START SolveMap_writeForHumanEye pfi->solvemap");   // added by edong
-            fflush(pfi->msgFile);   // added by edong
             SolveMap_writeForHumanEye(pfi->solvemap, pfi->msgFile);
             fprintf(pfi->msgFile, "\n\n edong: FIN SolveMap_writeForHumanEye pfi->solvemap");
-            fflush(pfi->msgFile);   // added by edong
         }
         if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: FIN STEP 11 in p_solver\n");
     }
@@ -779,25 +773,27 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
     if (DEBUG_LVL > 100) printf("\tedong enters fsolve_MPI\n");
     DenseMtx *mtxX;
     
+    {
     /*
      * STEP 8: permute the right hand side into the new ordering
      */
     //ssolve_permuteB(mtxB, pfi->oldToNewIV, pfi->msgFile);  // this step in MPI env has been finished in factor_MPI
+    }
 
     // STEP 12 in p_solver
-    /*---------------------------------------------------------------
-    *
-    *   ----------------------------------------------------
+    /*   ----------------------------------------------------
     *   STEP 12: Redistribute the submatrices of the factors
     *   ----------------------------------------------------
-    // edong: dedicated for MPI version
+    * edong: dedicated for MPI version
     */
     {
         if (DEBUG_LVL > 100)    printf("\tedong:fsolve_MPI: STEP 12 in p_solver\n");
         /* Now submatrices that a processor owns are local to
            that processor */
-        FrontMtx_MPI_split(pfi->frontmtx, pfi->solvemap,
+            fprintf(pfi->msgFile, "\n\n edong: BEGIN FrontMtx_MPI_split"); // added by edong
+            FrontMtx_MPI_split(pfi->frontmtx, pfi->solvemap,
                 stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
+            fprintf(pfi->msgFile, "\n\n edong: FIN FrontMtx_MPI_split"); // added by edong
         if (DEBUG_LVL > 1) {
             fprintf(pfi->msgFile, "\n\n numeric factorization after split");
             FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
