@@ -825,6 +825,7 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
                     DEBUG_LVL, pfi->msgFile);
             nmycol = IV_size(ownedColumnsIV);
             mtxX = DenseMtx_new();
+            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: In STEP 13 of p_solver: pfi->size = %d, nmycol = %d\n", pfi->size, nmycol);
             if (nmycol > 0) {
                 DenseMtx_init(mtxX, SPOOLES_REAL, 0, 0, nmycol, 1, 1, nmycol); // edong: changed nrhs to 1 at 6th parameter
                 DenseMtx_rowIndices(mtxX, &nrow, &rowind);
@@ -1293,7 +1294,7 @@ void spooles_solve(double *b, ITG *neq) {
         if (DEBUG_LVL > 100) printf("edong: START to output mtxX\n\n");
         for (i = 0; i < size; i++) {
             b[i] = DenseMtx_entries(mtxX)[i];
-            if (DEBUG_LVL > 100) fprintf(msgFile, "%lf", b[i]); // added by edong
+            if (DEBUG_LVL > 100) fprintf(msgFile, "%lf ", b[i]); // added by edong
         }
         if (DEBUG_LVL > 100) fprintf(msgFile, "\n\nedong: FIN to output mtxX\n\n"); // added by edong
         if (DEBUG_LVL > 100) fflush(msgFile); // added by edong
