@@ -739,9 +739,9 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         firsttag += 5 * nproc;
         if (DEBUG_LVL > 1) {
             fprintf(pfi->msgFile, "\n\n numeric factorization after post-processing");
-            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: START numeric factorization after post-processing"); // added by edong
+            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: START output pfi->msgFile in STEP 10 of p_solver"); // added by edong
             FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
-            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: FIN numeric factorization after post-processing"); // added by edong
+            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: FIN output pfi->msgFile in STEP 10 of p_solver"); // added by edong
             fflush(pfi->msgFile);
         }
     }
@@ -761,6 +761,9 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         if (DEBUG_LVL > 1) {
             SolveMap_writeForHumanEye(pfi->solvemap, pfi->msgFile);
             fprintf(pfi->msgFile, "\n\n edong: FIN SolveMap_writeForHumanEye pfi->solvemap");
+            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: START output pfi->msgFile in STEP 11 of p_solver"); // added by edong
+            FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
+            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: FIN output pfi->msgFile in STEP 11 of p_solver"); // added by edong
         }
         if (DEBUG_LVL > 100)    printf("\tedong:factor_MPI: FIN STEP 11 in p_solver\n");
     }
