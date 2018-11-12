@@ -790,10 +790,14 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
         if (DEBUG_LVL > 100)    printf("\tedong:fsolve_MPI: STEP 12 in p_solver\n");
         /* Now submatrices that a processor owns are local to
            that processor */
+            fprintf(pfi->msgFile, "\n\n edong: START numeric factorization BEFORE split"); // added by edong
+            FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile); // added by edong
+            fprintf(pfi->msgFile, "\n\n edong: FIN numeric factorization BEFORE split"); // added by edong
             fprintf(pfi->msgFile, "\n\n edong: BEGIN FrontMtx_MPI_split"); // added by edong
             FrontMtx_MPI_split(pfi->frontmtx, pfi->solvemap,
                 stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
             fprintf(pfi->msgFile, "\n\n edong: FIN FrontMtx_MPI_split"); // added by edong
+            fflush(pfi->msgFile); // added by edong
         if (DEBUG_LVL > 1) {
             fprintf(pfi->msgFile, "\n\n numeric factorization after split");
             FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
