@@ -13,7 +13,6 @@ spooles
 
 
     spooles_solve                
-            mtxB_propagate                              :   STEP 2
             fsolve_MPI
                     //ssolve_permuteB                     :   STEP 4 (Last statement)
                     LOCAL                               :   STEP 12, 13, 14

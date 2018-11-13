@@ -63,7 +63,7 @@ double cutoff, droptol = 0.0, minops, tau = 100.;
 char processor_name[MPI_MAX_PROCESSOR_NAME];
 double starttime = 0.0, endtime;
 int maxdomainsize, maxsize, maxzeros;
-int symmetryflag = 0;
+int symmetryflag = 0, pivotingflag = SPOOLES_PIVOTING; // edong: in p_solver, pivotingflag is 0 however, this causes the pfi->frontmtx different from the serial code
 int firsttag, nmycol;
 int stats[20];
 IV *ownedColumnsIV, *ownersIV, *vtxmapIV; // *newToOldIV, *oldToNewIV
@@ -125,6 +125,7 @@ static void ssolve_creategraph_MPI(Graph ** graph, ETree ** frontETree,
         }
         /* Perform an ordering with the better of nested dissection and */
         /* multi-section.  */
+        maxdomainsize = 800; maxsize = 64; //edong: TODO : Looks like different those two values result in different frontETree
         *frontETree = orderViaBestOfNDandMS(*graph, maxdomainsize, maxzeros,
                 maxsize, RNDSEED, DEBUG_LVL, msgFile);
     } else {
@@ -683,7 +684,7 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         SubMtxManager_init(pfi->mtxmanager, LOCK_IN_PROCESS, 0);
         FrontMtx_init(pfi->frontmtx, pfi->frontETree, symbfacIVL, SPOOLES_REAL, 
                 *symmetryflagi4, FRONTMTX_DENSE_FRONTS, 
-                SPOOLES_PIVOTING, LOCK_IN_PROCESS, myid, ownersIV,
+                pivotingflag, LOCK_IN_PROCESS, myid, ownersIV,
                 pfi->mtxmanager, DEBUG_LVL, pfi->msgFile);
     }
 
@@ -841,10 +842,11 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
                     "       pfi->size = %d, nmycol = %d, nrow = %d, rowind = %d\n", pfi->size, nmycol, nrow, *rowind);
             if (nmycol > 0) {
                 DenseMtx_init(mtxX, SPOOLES_REAL, 0, 0, nmycol, 1, 1, nmycol); // edong: changed nrhs to 1 at 6th parameter
-                DenseMtx_rowIndices(mtxX, &nrow, &rowind);
+                //DenseMtx_rowIndices(mtxX, &nrow, &rowind); // edong: let the pointer rowind pointed to an internal structure of mtxX
+                DenseMtx_zero(mtxX); // edong TODO: add this line from fsolve_MT version
                 if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: In STEP 13 of p_solver, AFTER DenseMtx_rowIndices: "
                     "       pfi->size = %d, nmycol = %d, nrow = %d, rowind = %d\n", pfi->size, nmycol, nrow, *rowind);
-                IVcopy(nmycol, rowind, IV_entries(ownedColumnsIV));
+                //IVcopy(nmycol, rowind, IV_entries(ownedColumnsIV)); // edong: this is to copy ownedColumnsIV into mtxX, via the pointer rowind
             }
         }
         // STEP 14 in p_solver
@@ -1328,7 +1330,9 @@ void spooles_solve(double *b, ITG *neq) {
     
     if (DEBUG_LVL > 100) printf("edong enters spooles_solve: size = %d\n", *neq);
 
+#ifndef MPI_READY
     mtxB_propagate(b, neq);
+#endif
     
 #ifdef MPI_READY
     if (DEBUG_LVL > 100) printf("edong: MPI_READY in spooles_solve. Going to invoke fsolve_MPI\n");
