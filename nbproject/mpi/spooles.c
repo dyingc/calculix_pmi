@@ -40,7 +40,7 @@
 #include "CalculiX.h"
 #include "spooles.h"
 
-FILE *msgFilf = NULL;
+FILE *msgFile = NULL;
 FILE *edongFile = NULL; // added by edong
 struct factorinfo pfj;
 
@@ -859,11 +859,13 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
                 fprintf(edongFile, "\n\n edong: pfi->frontmtx\n\n");
                 FrontMtx_writeForHumanEye(pfi->frontmtx, edongFile);
 
-                fprintf(edongFile, "\n\n edong: mtxX\n\n");
+                fprintf(edongFile, "\n\n edong: START mtxX\n\n");
                 DenseMtx_writeForHumanEye(mtxX, edongFile);
+                fprintf(edongFile, "\n\n edong: FIN mtxX\n\n");
 
-                fprintf(edongFile, "\n\n edong: mtxB\n\n");
+                fprintf(edongFile, "\n\n edong: START mtxB\n\n");
                 DenseMtx_writeForHumanEye(mtxB, msgFile);
+                fprintf(edongFile, "\n\n edong: FIN mtxB\n\n");
 
                 fprintf(edongFile, "\n\n edong: pfi->mtxmanager\n\n");
                 SubMtx_writeForHumanEye(pfi->mtxmanager, edongFile);
@@ -887,9 +889,9 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
 
                 fprintf(edongFile, "\n\n edong: firsttag = %d\n\n", firsttag);
 
-                fprintf(edongFile, "\n\n BEFORE solution matrix in new ordering: BEGIN");
+                fprintf(edongFile, "\n\n BEFORE solution matrix in new ordering: BEGIN \n");
                 DenseMtx_writeForHumanEye(mtxX, edongFile);
-                fprintf(edongFile, "\n\n BEFORE solution matrix in new ordering: END");
+                fprintf(edongFile, "\n\n BEFORE solution matrix in new ordering: END \n");
                 fflush(edongFile);
             }
             
@@ -946,6 +948,7 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
  * 
  */
 
+FILE *msgFilf;
 struct factorinfo pfi;
 
 /*
