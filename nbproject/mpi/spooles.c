@@ -855,6 +855,7 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
                     fprintf(pfi->msgFile, "%lf ", cpus[ii]);
             }
 
+            /*
             if (DEBUG_LVL > 100) { // added by edong
                 fprintf(edongFile, "\n\n edong: START pfi->frontmtx\n\n");
                 FrontMtx_writeForHumanEye(pfi->frontmtx, edongFile);
@@ -893,6 +894,8 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
                 fprintf(edongFile, "\n\n BEFORE solution matrix in new ordering: END \n");
                 fflush(edongFile);
             }
+            
+            */
             
             FrontMtx_MPI_solve(pfi->frontmtx, mtxX, mtxB, pfi->mtxmanager, pfi->solvemap, cpus,
                     stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
