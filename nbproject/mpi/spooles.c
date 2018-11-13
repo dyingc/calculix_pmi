@@ -1738,6 +1738,20 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
     MPI_Get_processor_name(processor_name, &namelen);
+
+    char buffer[20];
+    sprintf(buffer, "spooles.out.%d", myid);
+    if ((msgFile = fopen(buffer, "a")) == NULL) {
+        fprintf(stderr, "\n fatal error in spooles.c"
+                "\n unable to open file spooles.out\n");
+    }
+
+    sprintf(buffer, "edong_debug.out.%d", myid);
+    if ((edongFile = fopen(buffer, "a")) == NULL) { // added by edong
+        fprintf(stderr, "\n fatal error in spooles.c"
+                "\n unable to open file spooles.out\n");
+    }
+
     if (myid == 0) {
         printf("Solving the system of equations using SpoolesMPI\n\n");
     }
