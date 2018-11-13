@@ -856,22 +856,21 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
             }
 
             if (DEBUG_LVL > 100) { // added by edong
-                fprintf(edongFile, "\n\n edong: pfi->frontmtx\n\n");
+                fprintf(edongFile, "\n\n edong: START pfi->frontmtx\n\n");
                 FrontMtx_writeForHumanEye(pfi->frontmtx, edongFile);
-
-/*                fprintf(edongFile, "\n\n edong: START mtxX\n\n");
-                DenseMtx_writeForHumanEye(mtxX, edongFile);
-                fprintf(edongFile, "\n\n edong: FIN mtxX\n\n");*/
+                fprintf(edongFile, "\n\n edong: FIN pfi->frontmtx\n\n");
 
                 fprintf(edongFile, "\n\n edong: START mtxB\n\n");
                 DenseMtx_writeForHumanEye(mtxB, msgFile);
                 fprintf(edongFile, "\n\n edong: FIN mtxB\n\n");
 
-                fprintf(edongFile, "\n\n edong: pfi->mtxmanager\n\n");
+                fprintf(edongFile, "\n\n edong: START pfi->mtxmanager\n\n");
                 SubMtx_writeForHumanEye(pfi->mtxmanager, edongFile);
+                fprintf(edongFile, "\n\n edong: FIN pfi->mtxmanager\n\n");
 
-                fprintf(edongFile, "\n\n edong: pfi->solvemap\n\n");
+                fprintf(edongFile, "\n\n edong: START pfi->solvemap\n\n");
                 SolveMap_writeForHumanEye(pfi->solvemap, edongFile);
+                fprintf(edongFile, "\n\n edong: FIN pfi->solvemap\n\n");
 
                 {
                     fprintf(edongFile, "\n\n edong: \n\n\tcpus = ");
