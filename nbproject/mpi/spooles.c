@@ -705,6 +705,9 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
                 chvmanager, ownersIV, 0,
                 &error, cpus, stats, DEBUG_LVL,
                 pfi->msgFile, firsttag, MPI_COMM_WORLD);
+        fprintf(edongFile, "\n\n edong: AFTER FrontMtx_MPI_factorInpMtx START pfi->frontmtx\n\n");
+        FrontMtx_writeForHumanEye(pfi->frontmtx, edongFile);
+        fprintf(edongFile, "\n\n edong: AFTER FrontMtx_MPI_factorInpMtx FIN pfi->frontmtx\n\n");
         ChvManager_free(chvmanager);
         firsttag += 3 * pfi->frontETree->nfront + 2;
         if (DEBUG_LVL > 1) {
@@ -738,6 +741,9 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
         if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: FIN Preparing post-process the factorization"); // added by edong
         FrontMtx_MPI_postProcess(pfi->frontmtx, ownersIV, stats, DEBUG_LVL,
         pfi->msgFile, firsttag, MPI_COMM_WORLD);
+        fprintf(edongFile, "\n\n edong: AFTER FrontMtx_MPI_postProcess START pfi->frontmtx\n\n");
+        FrontMtx_writeForHumanEye(pfi->frontmtx, edongFile);
+        fprintf(edongFile, "\n\n edong: AFTER FrontMtx_MPI_postProcess FIN pfi->frontmtx\n\n");
         firsttag += 5 * nproc;
         if (DEBUG_LVL > 1) {
             fprintf(pfi->msgFile, "\n\n numeric factorization after post-processing");
@@ -807,9 +813,6 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
         if (DEBUG_LVL > 100)    printf("\tedong:fsolve_MPI: STEP 12 in p_solver\n");
         /* Now submatrices that a processor owns are local to
            that processor */
-            fprintf(edongFile, "\n\n edong: BEFORE FrontMtx_MPI_split START pfi->frontmtx\n\n");
-            FrontMtx_writeForHumanEye(pfi->frontmtx, edongFile);
-            fprintf(edongFile, "\n\n edong: BEFORE FrontMtx_MPI_split FIN pfi->frontmtx\n\n");
             FrontMtx_MPI_split(pfi->frontmtx, pfi->solvemap,
                 stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
             fprintf(edongFile, "\n\n\n\n\n\n\n\n\n\n edong: AFTER FrontMtx_MPI_split START pfi->frontmtx\n\n");
