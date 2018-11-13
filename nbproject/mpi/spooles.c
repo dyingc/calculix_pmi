@@ -41,6 +41,7 @@
 #include "spooles.h"
 
 FILE *msgFilf = NULL;
+FILE *edongFile = NULL; // added by edong
 struct factorinfo pfj;
 
 #if USE_MT
@@ -853,6 +854,45 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
                 for (ii = 0; ii < 20; ii++)
                     fprintf(pfi->msgFile, "%lf ", cpus[ii]);
             }
+
+            if (DEBUG_LVL > 100) { // added by edong
+                fprintf(edongFile, "\n\n edong: pfi->frontmtx\n\n");
+                FrontMtx_writeForHumanEye(pfi->frontmtx, edongFile);
+
+                fprintf(edongFile, "\n\n edong: mtxX\n\n");
+                DenseMtx_writeForHumanEye(mtxX, edongFile);
+
+                fprintf(edongFile, "\n\n edong: mtxB\n\n");
+                DenseMtx_writeForHumanEye(mtxB, msgFile);
+
+                fprintf(edongFile, "\n\n edong: pfi->mtxmanager\n\n");
+                SubMtx_writeForHumanEye(pfi->mtxmanager, edongFile);
+
+                fprintf(edongFile, "\n\n edong: pfi->solvemap\n\n");
+                SolveMap_writeForHumanEye(pfi->solvemap, edongFile);
+
+                {
+                    fprintf(edongFile, "\n\n edong: \n\n\tcpus = ");
+                    int ii;
+                    for (ii = 0; ii < 20; ii++)
+                        fprintf(edongFile, "%lf ", cpus[ii]);
+                }
+
+                {
+                    fprintf(edongFile, "\n\n edong: \n\tstats = ");
+                    int ii;
+                    for (ii = 0; ii < 20; ii++)
+                        fprintf(edongFile, "%d ", stats[ii]);
+                }
+
+                fprintf(edongFile, "\n\n edong: firsttag = %d\n\n", firsttag);
+
+                fprintf(edongFile, "\n\n BEFORE solution matrix in new ordering: BEGIN");
+                DenseMtx_writeForHumanEye(mtxX, edongFile);
+                fprintf(edongFile, "\n\n BEFORE solution matrix in new ordering: END");
+                fflush(edongFile);
+            }
+            
             FrontMtx_MPI_solve(pfi->frontmtx, mtxX, mtxB, pfi->mtxmanager, pfi->solvemap, cpus,
                     stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
             if (DEBUG_LVL > 1) {
@@ -906,7 +946,6 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
  * 
  */
 
-FILE *msgFile;
 struct factorinfo pfi;
 
 /*
@@ -1330,6 +1369,7 @@ void spooles_cleanup() {
         SolveMap_free(pfi.solvemap);
     ETree_free(pfi.frontETree);
     fclose(msgFile);
+    fclose(edongFile); // added by edong
 #ifdef MPI_READY
     DenseMtx_free(mtxB);
     IV_free(ownersIV);
@@ -1672,6 +1712,11 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
     if (*neq == 0) return;
 
     if ((msgFile = fopen("spooles.out", "a")) == NULL) {
+        fprintf(stderr, "\n fatal error in spooles.c"
+                "\n unable to open file spooles.out\n");
+    }
+
+    if ((edongFile = fopen("edong_debug.out", "a")) == NULL) { // added by edong
         fprintf(stderr, "\n fatal error in spooles.c"
                 "\n unable to open file spooles.out\n");
     }
