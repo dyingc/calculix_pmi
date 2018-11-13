@@ -859,9 +859,9 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
                 fprintf(edongFile, "\n\n edong: pfi->frontmtx\n\n");
                 FrontMtx_writeForHumanEye(pfi->frontmtx, edongFile);
 
-                fprintf(edongFile, "\n\n edong: START mtxX\n\n");
+/*                fprintf(edongFile, "\n\n edong: START mtxX\n\n");
                 DenseMtx_writeForHumanEye(mtxX, edongFile);
-                fprintf(edongFile, "\n\n edong: FIN mtxX\n\n");
+                fprintf(edongFile, "\n\n edong: FIN mtxX\n\n");*/
 
                 fprintf(edongFile, "\n\n edong: START mtxB\n\n");
                 DenseMtx_writeForHumanEye(mtxB, msgFile);
