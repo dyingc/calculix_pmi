@@ -807,14 +807,14 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
         if (DEBUG_LVL > 100)    printf("\tedong:fsolve_MPI: STEP 12 in p_solver\n");
         /* Now submatrices that a processor owns are local to
            that processor */
-            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: START numeric factorization BEFORE split"); // added by edong
-            if (DEBUG_LVL > 100)    FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile); // added by edong
-            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: FIN numeric factorization BEFORE split"); // added by edong
-            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: BEGIN FrontMtx_MPI_split"); // added by edong
+            fprintf(edongFile, "\n\n edong: BEFORE FrontMtx_MPI_split START pfi->frontmtx\n\n");
+            FrontMtx_writeForHumanEye(pfi->frontmtx, edongFile);
+            fprintf(edongFile, "\n\n edong: BEFORE FrontMtx_MPI_split FIN pfi->frontmtx\n\n");
             FrontMtx_MPI_split(pfi->frontmtx, pfi->solvemap,
                 stats, DEBUG_LVL, pfi->msgFile, firsttag, MPI_COMM_WORLD);
-            if (DEBUG_LVL > 100)    fprintf(pfi->msgFile, "\n\n edong: FIN FrontMtx_MPI_split"); // added by edong
-            if (DEBUG_LVL > 100)    fflush(pfi->msgFile); // added by edong
+            fprintf(edongFile, "\n\n\n\n\n\n\n\n\n\n edong: AFTER FrontMtx_MPI_split START pfi->frontmtx\n\n");
+            FrontMtx_writeForHumanEye(pfi->frontmtx, edongFile);
+            fprintf(edongFile, "\n\n edong: AFTER FrontMtx_MPI_split FIN pfi->frontmtx\n\n");
         if (DEBUG_LVL > 1) {
             fprintf(pfi->msgFile, "\n\n numeric factorization after split");
             FrontMtx_writeForHumanEye(pfi->frontmtx, pfi->msgFile);
