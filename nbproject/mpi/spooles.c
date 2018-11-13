@@ -1748,6 +1748,8 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
 
     spooles_cleanup();
 
+    fprintf(stderr, "\n\nedong: exit for debugging purpose!!\n");
+    exit(-1);
 }
 
 #endif
