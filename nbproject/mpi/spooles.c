@@ -824,7 +824,7 @@ DenseMtx *fsolve_MPI(struct factorinfo *pfi, DenseMtx *mtxB) {
             fprintf(edongFile, "\n\n\n\n\n\n\n\n\n\n edong: BEGIN Output stats\n");
             int ii;
             for (ii = 0; ii < 20; ii++)
-                fprintf(edongFile, "%d ", stats[i]);
+                fprintf(edongFile, "%d ", stats[ii]);
             fprintf(edongFile, "\n\n\n\n\n\n\n\n\n\n edong: END Output stats\n");
             fprintf(pfi->msgFile, "\n\n\n\n\n\n\n\n\n\n edong: START FrontMtx_MPI_split at STEP 12 in p_solver\n");
             FrontMtx_MPI_split(pfi->frontmtx, pfi->solvemap,
