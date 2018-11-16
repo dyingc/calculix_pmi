@@ -128,7 +128,8 @@ double time[2],dtime;
 FORTRAN(uexternaldb,(&lop,&lrestart,time,&dtime,&kstep,&kinc));
 #endif
 
-FORTRAN(openfile,(jobnamef,output));
+if (myid == 0)
+	FORTRAN(openfile,(jobnamef,output));
 
 printf("\n************************************************************\n\n");
 printf("CalculiX Version 2.14, Copyright(C) 1998-2018 Guido Dhondt\n");
