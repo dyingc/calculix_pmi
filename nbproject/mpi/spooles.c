@@ -129,6 +129,7 @@ static void ssolve_creategraph_MPI(Graph ** graph, ETree ** frontETree,
         *frontETree = orderViaBestOfNDandMS(*graph, maxdomainsize, maxzeros,
                 maxsize, RNDSEED, DEBUG_LVL, msgFile);
     } else {
+        *frontETree = NULL;
     }
     /* The ordering is now sent to all processors with MPI_Bcast. */
     *frontETree = ETree_MPI_Bcast(*frontETree, root,
@@ -783,6 +784,8 @@ void factor_MPI(struct factorinfo *pfi, InpMtx **mtxA, int size, FILE *msgFile, 
     InpMtx_free(*mtxA);
     //IVL_free(symbfacIVL);  // edong: we of course can't cleanup symbfacIVL as it's indeed inside the pfi->frontmtx
     Graph_free(graph);
+    if (myid == 0)
+      Graph_free(graph); 
     //IV_free(ownersIV); // edong: In MPI code, the ownersIV is a global variable that will be used in fsolve_MPI as well. It then can only be cleaned in spooles, the main one
 }
 
