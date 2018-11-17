@@ -31,7 +31,7 @@ int          count, destination, ii, ilist, incount, jlist,
              jproc, left, maxcount, myid, nlist, nmylists, 
              notherlists, nowners, nproc, offset, outcount, 
              right, size, source, tag ;
-int          *counts, *inbuffer, *list, *outbuffer, *owners ;
+int          *counts, *counts_recv, *inbuffer, *list, *outbuffer, *owners ;
 MPI_Status   status ;
 /*
    ---------------
@@ -100,9 +100,11 @@ if ( msglvl > 2 ) {
    ----------------------------------------------------
 */
 counts = IVinit(nproc, 0) ;
+counts_recv = IVinit(nproc, 0) ;
 counts[myid] = outcount ;
 MPI_Allgather((void *) &counts[myid], 1, MPI_INT,
-              (void *) counts,  1, MPI_INT, comm) ;
+              (void *) counts_recv,  1, MPI_INT, comm) ;
+memcpy(counts, counts_recv, nproc*sizeof(int));
 if ( msglvl > 1 ) {
    fprintf(msgFile, "\n\n counts") ;
    IVfprintf(msgFile, nproc, counts) ;
@@ -231,6 +233,7 @@ for ( offset = 1, tag = firsttag ; offset < nproc ; offset++, tag++ ) {
    ------------------------
 */
 IVfree(counts) ;
+IVfree(counts_recv) ;
 if ( outbuffer != NULL ) {
    IVfree(outbuffer) ;
 }

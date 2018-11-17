@@ -22,7 +22,7 @@ InpMtx_MPI_fullAdjacency (
 ) {
 InpMtx   *adjmtx ;
 int       ierr, iproc, maxnent, myid, nent, nproc, oldtype, totalnent ;
-int       *buffer, *counts, *ivec1, *ivec2 ;
+int       *buffer, *counts, *counts_recv, *ivec1, *ivec2 ;
 IVL       *adjIVL ;
 /*
    --------------------------------------
@@ -51,9 +51,11 @@ if ( msglvl > 2 ) {
    -------------------------------------------
 */
 counts = IVinit(nproc, 0) ;
+counts_recv = IVinit(nproc, 0) ;
 counts[myid] = nent ;
 MPI_Allgather((void *) &counts[myid], 1, MPI_INT,
-              (void *) counts, 1, MPI_INT, comm) ;
+              (void *) counts_recv, 1, MPI_INT, comm) ;
+memcpy(counts, counts_recv, nproc*sizeof(int));
 totalnent = IVsum(nproc, counts) ;
 if ( msglvl > 1 ) {
    fprintf(msgFile, "\n\n %d total entries", totalnent) ;
@@ -167,6 +169,7 @@ InpMtx_changeCoordType(inpmtx, oldtype) ;
    ------------------------
 */
 IVfree(counts) ;
+IVfree(counts_recv) ;
 IVfree(buffer) ;
 InpMtx_free(adjmtx) ;
 
@@ -193,7 +196,7 @@ Pencil_MPI_fullAdjacency (
 InpMtx   *adjmtx, *inpmtxA, *inpmtxB ;
 int       ierr, iproc, maxnent, myid, nent, nentA, nentB,
           nproc, oldtypeA, oldtypeB, totalnent ;
-int       *buffer, *counts, *ivec1, *ivec2, *tempbuffer ;
+int       *buffer, *counts, *counts_recv, *ivec1, *ivec2, *tempbuffer ;
 IVL       *adjIVL ;
 /*
    ------------------------------------------------------
@@ -288,9 +291,11 @@ if ( msglvl > 5 ) {
    -------------------------------------------
 */
 counts = IVinit(nproc, 0) ;
+counts_recv = IVinit(nproc, 0) ;
 counts[myid] = nent ;
 MPI_Allgather((void *) &counts[myid], 1, MPI_INT,
-              (void *) counts, 1, MPI_INT, comm) ;
+              (void *) counts_recv, 1, MPI_INT, comm) ;
+memcpy(counts, counts_recv, nproc*sizeof(int));
 totalnent = IVsum(nproc, counts) ;
 if ( msglvl > 1 ) {
    fprintf(msgFile, "\n\n %d total entries", totalnent) ;
@@ -411,6 +416,7 @@ InpMtx_changeCoordType(inpmtxB, oldtypeB) ;
    ------------------------
 */
 IVfree(counts) ;
+IVfree(counts_recv) ;
 if ( tempbuffer != NULL ) {
    IVfree(tempbuffer) ;
 }
